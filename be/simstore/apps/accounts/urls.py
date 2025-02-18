@@ -1,12 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import EmployeeViewSet
+from .views import EmployeeViewSet, AccountViewSet, RoleViewSet
 
 router = DefaultRouter()
 router.register(r'employees', EmployeeViewSet)
 router.register(r'accounts', AccountViewSet)
+router.register(r'roles', RoleViewSet, basename='role')
 
 urlpatterns = [
-    path("", include(router.urls)),  # Định tuyến cho API
-    path('', include(router.urls)),
+    path("", include(router.urls)), 
 ]

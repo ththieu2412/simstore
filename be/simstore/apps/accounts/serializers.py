@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import Employee, Account
+from .models import Employee, Account, Role
 import re
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -46,3 +47,41 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = '__all__'
+
+    def validate_username(self, value):
+        """Kiểm tra username chỉ chứa chữ cái và số"""
+        if not value.isalnum():
+            raise serializers.ValidationError("Username chỉ được chứa chữ cái và số.")
+        return value
+
+    def validate_password(self, value):
+        """Kiểm tra mật khẩu ít nhất 8 ký tự, chứa chữ hoa, chữ thường, số và ký tự đặc biệt"""
+        if len(value) < 8:
+            raise serializers.ValidationError("Mật khẩu phải có ít nhất 8 ký tự.")
+        if not any(char.isdigit() for char in value):
+            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một số.")
+        if not any(char.isupper() for char in value):
+            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một chữ hoa.")
+        if not any(char.islower() for char in value):
+            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một chữ thường.")
+        if not any(char in "!@#$%^&*()_+-=[]{}|;:'\",.<>?/" for char in value):
+            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt.")
+        return value
+
+    def create(self, validated_data):
+        """Mã hóa mật khẩu trước khi lưu"""
+        validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        """Cập nhật tài khoản và mã hóa mật khẩu nếu có"""
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().update(instance, validated_data)
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = '__all__'
+
+
