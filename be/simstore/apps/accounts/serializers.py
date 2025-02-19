@@ -46,7 +46,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = '__all__'
+        fields = ['id', 'username', 'password', 'role', 'employee']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
     def validate_username(self, value):
         """Kiểm tra username chỉ chứa chữ cái và số"""
@@ -70,7 +73,10 @@ class AccountSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Mã hóa mật khẩu trước khi lưu"""
-        validated_data['password'] = make_password(validated_data['password'])
+        
+        password = make_password(validated_data['password'])
+        print(len(password))  # Kiểm tra độ dài của mật khẩu mã hóa
+        validated_data['password'] = password
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -78,10 +84,25 @@ class AccountSerializer(serializers.ModelSerializer):
         if 'password' in validated_data:
             validated_data['password'] = make_password(validated_data['password'])
         return super().update(instance, validated_data)
+    
+    # def to_representation(self, instance):
+    #     """Loại bỏ trường mật khẩu khi trả về dữ liệu"""
+    #     representation = super().to_representation(instance)
+    #     # Loại bỏ trường mật khẩu
+    #     representation.pop('password', None)
+    #     return representation
 
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = '__all__'
 
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(max_length=255, write_only=True)
 
+    def validate(self, data):
+        """Kiểm tra dữ liệu đầu vào"""
+        if not data.get("username") or not data.get("password"):
+            raise serializers.ValidationError("Username và password không được để trống.")
+        return data

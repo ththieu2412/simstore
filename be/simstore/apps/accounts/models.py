@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 class Employee(models.Model):
     full_name = models.CharField(max_length=255)
@@ -26,12 +27,18 @@ class Role(models.Model):
     class Meta:
         db_table = 'role'
 
-class Account(models.Model):
-    username = models.CharField(max_length=150, unique=True)
-    password = models.CharField(max_length=255)
-    role = models.ForeignKey(Role, on_delete=models.CASCADE)
-    employee = models.OneToOneField(Employee, on_delete=models.CASCADE)
+class Account(AbstractUser):  # Kế thừa từ AbstractUser
+    role = models.ForeignKey('Role', on_delete=models.CASCADE)
+    employee = models.OneToOneField('Employee', on_delete=models.CASCADE, null=True, blank=True)
 
+    email = None
+    last_login = None
+    is_superuser = None
+    first_name = None
+    last_name = None
+    is_staff = None
+    date_joined = None
+    
     def __str__(self):
         return self.username
     

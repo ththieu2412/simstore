@@ -1,7 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .serializers import EmployeeSerializer, AccountSerializer, RoleSerializer
+from .serializers import EmployeeSerializer, AccountSerializer, RoleSerializer, LoginSerializer
 from .models import Employee, Account, Role
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
+from django.contrib.auth.hashers import check_password
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
@@ -98,6 +101,8 @@ class AccountViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Tạo tài khoản mới"""
+        # print("Kiểm tra data nhập vào")
+        # print(request.data)
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.perform_create(serializer)
@@ -144,3 +149,54 @@ class AccountViewSet(viewsets.ModelViewSet):
             "status": "success",
             "errorMessage": None
         }, status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        """API Login - Xác thực bằng Token"""
+        print("Kiểm tra data nhập vào")
+        print(request.data)
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+
+            try:
+                account = Account.objects.get(username=username)
+                if not account.is_active:
+                    return Response(
+                        {"error": "Account is inactive. Please contact the administrator."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                if check_password(password, account.password):  # Kiểm tra mật khẩu
+                    token, _ = Token.objects.get_or_create(user=account)
+                    return Response({
+                        "statuscode": status.HTTP_200_OK,
+                        "data": {
+                            "token": token.key,
+                            "username": account.username,
+                            "role": account.role.role_name
+                        },
+                        "status": "success",
+                        "errorMessage": None
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "statuscode": status.HTTP_400_BAD_REQUEST,
+                        "data": None,
+                        "status": "error",
+                        "errorMessage": "Sai mật khẩu!"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except Account.DoesNotExist:
+                return Response({
+                    "statuscode": status.HTTP_400_BAD_REQUEST,
+                    "data": None,
+                    "status": "error",
+                    "errorMessage": "Tài khoản không tồn tại!"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "statuscode": status.HTTP_400_BAD_REQUEST,
+            "data": None,
+            "status": "error",
+            "errorMessage": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
