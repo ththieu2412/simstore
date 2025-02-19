@@ -23,5 +23,5 @@ urlpatterns = [
     # path("api/orders/", include("apps.orders.urls")),
     # path("api/simcards/", include("apps.simcards.urls")),
     # path("api/locations/", include("apps.locations.urls")),
-    # path("api/suppliers/", include("apps.suppliers.urls")),
+    path("api/suppliers/", include("apps.suppliers.urls")),
 ]

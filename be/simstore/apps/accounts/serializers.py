@@ -106,3 +106,4 @@ class LoginSerializer(serializers.Serializer):
         if not data.get("username") or not data.get("password"):
             raise serializers.ValidationError("Username và password không được để trống.")
         return data
+

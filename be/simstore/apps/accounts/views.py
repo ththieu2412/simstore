@@ -200,3 +200,4 @@ class AccountViewSet(viewsets.ModelViewSet):
             "status": "error",
             "errorMessage": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
