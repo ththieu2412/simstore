@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Supplier
+from .models import Supplier, Employee, ImportReceipt
 import re
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -25,4 +25,45 @@ class SupplierSerializer(serializers.ModelSerializer):
         """Chỉ chấp nhận email có đuôi @gmail.com hoặc để trống"""
         if value and not re.match(r'^[\w\.-]+@gmail\.com$', value):
             raise serializers.ValidationError("Email phải có định dạng xxx@gmail.com.")
+        return value
+ 
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name']
+
+class EmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = ['id', 'full_name']
+
+class ImportReceiptSerializer(serializers.ModelSerializer):
+    supplier = SupplierSerializer()  
+    employee_id = EmployeeSerializer()
+    class Meta:
+        model = ImportReceipt
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        """Ghi đè dữ liệu trả về"""
+        data = super().to_representation(instance)
+        data['created_at'] = instance.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return data
+    
+    def validate_note(self, value):
+        """Ghi chú không được chứa toàn khoảng trắng"""
+        if value and value.strip() == "":
+            raise serializers.ValidationError("Ghi chú không hợp lệ.")
+        return value
+
+    def validate_supplier(self, value):
+        """Nhà cung cấp phải hợp lệ"""
+        if not Supplier.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Nhà cung cấp không hợp lệ.")
+        return value
+
+    def validate_employee_id(self, value):
+        """Nhân viên phải hợp lệ"""
+        if not Employee.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Nhân viên không hợp lệ.")
         return value

@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import Supplier
-from .serializers import SupplierSerializer
+from .models import Supplier, ImportReceipt
+from .serializers import SupplierSerializer, ImportReceiptSerializer
+from django.utils.timezone import now
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -55,3 +56,26 @@ class SupplierViewSet(viewsets.ModelViewSet):
             "status": "success",
             "errorMessage": None
         }, status=status.HTTP_200_OK)
+
+class ImportReceiptViewSet(viewsets.ModelViewSet):
+    queryset = ImportReceipt.objects.all()
+    serializer_class = ImportReceiptSerializer
+
+    def create(self, request, *args, **kwargs):
+        """API Tạo hóa đơn nhập hàng"""
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response({
+                "statuscode": status.HTTP_201_CREATED,
+                "data": serializer.data,
+                "time-zone" : now(),
+                "status": "success",
+                "errorMessage": None
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "statuscode": status.HTTP_400_BAD_REQUEST,
+            "data": None,
+            "status": "error",
+            "errorMessage": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
