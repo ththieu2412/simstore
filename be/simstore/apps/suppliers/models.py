@@ -31,11 +31,11 @@ class ImportReceipt(models.Model):
 
 class ImportReceiptDetail(models.Model):
     import_receipt = models.ForeignKey(ImportReceipt, on_delete=models.CASCADE)
-    sim_id = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name='importReceiptDetail')  # ID của SIM được nhập khẩu
+    sim = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name='importReceiptDetail')  # ID của SIM được nhập khẩu
     import_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"Receipt {self.import_receipt.id} - SIM {self.sim_id}"
+        return f"Receipt {self.import_receipt.id} - SIM {self.sim.id}"
     
     class Meta:
         db_table = 'importReceiptDetail'

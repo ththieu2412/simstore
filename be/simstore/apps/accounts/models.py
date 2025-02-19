@@ -19,7 +19,7 @@ class Employee(models.Model):
         db_table = 'employee'
 
 class Role(models.Model):
-    role_name = models.CharField(max_length=50, unique=True)
+    role_name = models.CharField(max_length=50, unique=True, db_collation='utf8mb4_bin')
 
     def __str__(self):
         return self.role_name
