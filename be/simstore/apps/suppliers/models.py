@@ -20,7 +20,7 @@ class ImportReceipt(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     note = models.TextField(null=True, blank=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
-    employee_id = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='importReceipt')  # ID nhân viên tạo hóa đơn
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='importReceipt')  # ID nhân viên tạo hóa đơn
 
     def __str__(self):
         return f"Import Receipt {self.id} from {self.supplier.name}"
