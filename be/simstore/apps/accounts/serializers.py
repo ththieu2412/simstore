@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Employee, Account, Role
 import re
 from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 
 
@@ -23,15 +24,15 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return value
 
     def validate_date_of_birth(self, value):
-        # Kiểm tra ngày sinh không phải trong tương lai
-        if value > timezone.now().date():
-            raise serializers.ValidationError("Date of birth cannot be in the future.")
-        return value
+        today = timezone.now().date()
+        min_birth_date = today - timedelta(days=15*365)  # Trừ 15 năm
 
-    def validate_gender(self, value):
-        # Kiểm tra giá trị của gender (0 hoặc 1)
-        if value not in [True, False]:
-            raise serializers.ValidationError("Gender must be either True or False.")
+        if value > today:
+            raise serializers.ValidationError("Date of birth cannot be in the future.")
+        
+        if value > min_birth_date:
+            raise serializers.ValidationError("You must be at least 15 years old.")
+
         return value
 
     def validate_avatar(self, value):
@@ -96,6 +97,22 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = '__all__'
+
+    def validate_role_name(self, value):
+        """Chuẩn hóa role_name về dạng viết thường và kiểm tra trùng"""
+        normalized_name = value.strip().lower()  # Xóa khoảng trắng và chuyển về lowercase
+
+        # Kiểm tra xem có role nào đã tồn tại với tên tương tự không
+        if Role.objects.filter(role_name__iexact=normalized_name).exists():
+            raise serializers.ValidationError("Role name already exists.")
+
+        return normalized_name
+
+    def create(self, validated_data):
+        """Ghi đè create để lưu role_name chuẩn hóa"""
+        validated_data['role_name'] = validated_data['role_name'].strip().lower()  # Đảm bảo lưu chuẩn hóa
+        return super().create(validated_data)
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
