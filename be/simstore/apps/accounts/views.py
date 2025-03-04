@@ -2,10 +2,15 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .serializers import EmployeeSerializer, AccountSerializer, RoleSerializer, LoginSerializer
 from .models import Employee, Account, Role
-from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
+from django.contrib.auth.models import update_last_login
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password
 from django.db.models import ProtectedError
+from simstore.permissions import IsAdminPermission
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
@@ -117,9 +122,40 @@ class RoleViewSet(viewsets.ModelViewSet):
             "errorMessage": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
     
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            instance.delete()
+            return Response({
+                "statuscode": status.HTTP_204_NO_CONTENT,
+                "data": None,
+                "status": "success",
+                "errorMessage": None
+            }, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({
+                "statuscode": status.HTTP_400_BAD_REQUEST,
+                "data": None,
+                "status": "error",
+                "errorMessage": "Không thể xóa role vì có dữ liệu liên quan."
+            }, status=status.HTTP_400_BAD_REQUEST)
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
+    permission_classes = [IsAdminPermission]
+    
+    def handle_exception(self, exc):
+        """
+        Xử lý lỗi permission để trả về đúng format yêu cầu
+        """
+        if isinstance(exc, IsAdminPermission):
+            return Response({
+                "statuscode": status.HTTP_400_BAD_REQUEST,
+                "data": None,
+                "status": "error",
+                "errorMessage": "Bạn không có quyền truy cập API này!"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return super().handle_exception(exc)
 
     def create(self, request, *args, **kwargs):
         """Tạo tài khoản mới"""
@@ -172,11 +208,12 @@ class AccountViewSet(viewsets.ModelViewSet):
             "errorMessage": None
         }, status=status.HTTP_204_NO_CONTENT)
     
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def login(self, request):
-        """API Login - Xác thực bằng Token"""
+        """API Login - Xác thực bằng JWT"""
         print("Kiểm tra data nhập vào")
         print(request.data)
+
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
@@ -189,13 +226,17 @@ class AccountViewSet(viewsets.ModelViewSet):
                         {"error": "Account is inactive. Please contact the administrator."},
                         status=status.HTTP_403_FORBIDDEN
                     )
-                
+
                 if check_password(password, account.password):  # Kiểm tra mật khẩu
-                    token, _ = Token.objects.get_or_create(user=account)
+                    # Tạo JWT Token
+                    refresh = RefreshToken.for_user(account)
+                    # update_last_login(None, account)  # Cập nhật thời gian đăng nhập gần nhất
+
                     return Response({
                         "statuscode": status.HTTP_200_OK,
                         "data": {
-                            "token": token.key,
+                            "access_token": str(refresh.access_token),
+                            "refresh_token": str(refresh),
                             "username": account.username,
                             "role": account.role.role_name
                         },
@@ -216,6 +257,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                     "status": "error",
                     "errorMessage": "Tài khoản không tồn tại!"
                 }, status=status.HTTP_400_BAD_REQUEST)
+
         return Response({
             "statuscode": status.HTTP_400_BAD_REQUEST,
             "data": None,
@@ -223,3 +265,18 @@ class AccountViewSet(viewsets.ModelViewSet):
             "errorMessage": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+class LogoutView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required"}, status=400)
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Chặn refresh token này (Chỉ hoạt động nếu bật Blacklist)
+
+            return Response({"message": "Logout successful"}, status=200)
+        except Exception as e:
+            return Response({"error": "Invalid token"}, status=400)  

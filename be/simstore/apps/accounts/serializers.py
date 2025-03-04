@@ -52,11 +52,11 @@ class AccountSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}
         }
 
-    def validate_username(self, value):
-        """Kiểm tra username chỉ chứa chữ cái và số"""
-        if not value.isalnum():
-            raise serializers.ValidationError("Username chỉ được chứa chữ cái và số.")
-        return value
+    # def validate_username(self, value):
+    #     """Kiểm tra username chỉ chứa chữ cái và số"""
+    #     if not value.isalnum():
+    #         raise serializers.ValidationError("Username chỉ được chứa chữ cái và số.")
+    #     return value
 
     def validate_password(self, value):
         """Kiểm tra mật khẩu ít nhất 8 ký tự, chứa chữ hoa, chữ thường, số và ký tự đặc biệt"""
@@ -74,7 +74,6 @@ class AccountSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Mã hóa mật khẩu trước khi lưu"""
-        
         password = make_password(validated_data['password'])
         print(len(password))  # Kiểm tra độ dài của mật khẩu mã hóa
         validated_data['password'] = password

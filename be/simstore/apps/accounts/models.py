@@ -28,7 +28,7 @@ class Role(models.Model):
         db_table = 'role'
 
 class Account(AbstractUser):  # Kế thừa từ AbstractUser
-    role = models.ForeignKey('Role', on_delete=models.CASCADE)
+    role = models.ForeignKey('Role', on_delete=models.PROTECT)
     employee = models.OneToOneField('Employee', on_delete=models.PROTECT, blank=False)
 
     email = None
