@@ -4,9 +4,9 @@ from apps.accounts.models import Employee
 
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
-    email = models.EmailField(null=True, blank=True)
-    address = models.TextField(null=True, blank=True)
+    phone_number = models.CharField(max_length=15, unique=True)
+    email = models.EmailField(unique=True)
+    address = models.TextField()
     status = models.BooleanField(default=True)  # Nhà cung cấp còn hoạt động
 
     def __str__(self):
@@ -31,12 +31,14 @@ class ImportReceipt(models.Model):
 
 class ImportReceiptDetail(models.Model):
     import_receipt = models.ForeignKey(ImportReceipt, on_delete=models.CASCADE)
-    sim = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name='importReceiptDetail')  # ID của SIM được nhập khẩu
+    sim = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name='importReceiptDetail')
     import_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"Receipt {self.import_receipt.id} - SIM {self.sim.id}"
-    
+
     class Meta:
         db_table = 'importReceiptDetail'
-        unique_together = ('import_receipt', 'sim_id')
+        constraints = [
+            models.UniqueConstraint(fields=['import_receipt', 'sim'], name='unique_import_sim')
+        ]

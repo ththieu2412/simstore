@@ -5,6 +5,7 @@ from .models import Employee, Account, Role
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password
+from django.db.models import ProtectedError
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
@@ -46,12 +47,33 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 "status": "error",
                 "errorMessage": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response({
+                "statuscode": status.HTTP_204_NO_CONTENT,
+                "data": None,
+                "status": "success",
+                "errorMessage": None
+            }, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({
+                "statuscode": status.HTTP_400_BAD_REQUEST,
+                "data": None,
+                "status": "error",
+                "errorMessage": "Không thể xóa nhân viên vì có dữ liệu liên quan."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
         serializer.save()
 
     def perform_update(self, serializer):
         serializer.save()
+    
+    def perform_destroy(self, instance):
+        instance.delete()
 
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
