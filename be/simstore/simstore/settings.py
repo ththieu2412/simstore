@@ -46,11 +46,13 @@ INSTALLED_APPS = [
     'apps.simcards',
     'apps.orders',
     'apps.locations',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -87,7 +89,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "simstore",
         "USER": "root",
-        "PASSWORD": "Hieu24122003@",  
+        "PASSWORD": "123456",  
         "HOST": "localhost",
         "PORT": "3306",
     }
@@ -142,3 +144,15 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",
+# ]
+
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "access-control-allow-origin",
+]
