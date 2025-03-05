@@ -142,7 +142,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
-    permission_classes = [IsAdminPermission]
+    # permission_classes = [IsAdminPermission]
     
     def handle_exception(self, exc):
         """

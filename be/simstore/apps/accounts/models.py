@@ -27,7 +27,8 @@ class Role(models.Model):
     class Meta:
         db_table = 'role'
 
-class Account(AbstractUser):  # Kế thừa từ AbstractUser
+class Account(AbstractUser):  
+    status = models.BooleanField(default=1)# Kế thừa từ AbstractUser
     role = models.ForeignKey('Role', on_delete=models.PROTECT)
     employee = models.OneToOneField('Employee', on_delete=models.PROTECT, blank=False)
 
