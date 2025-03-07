@@ -50,7 +50,7 @@ class Order(models.Model):
     sim = models.ForeignKey(SIM, on_delete=models.CASCADE) 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE) 
     ward = models.ForeignKey(Ward, on_delete=models.CASCADE) 
-    discount = models.ForeignKey(Discount, null=True, blank=True, on_delete=models.SET_NULL)  
+    discount = models.OneToOneField(Discount, null=True, blank=True, on_delete=models.SET_NULL)
     note = models.CharField(max_length=500, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     

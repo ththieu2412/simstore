@@ -38,13 +38,19 @@ class OrderViewSet(viewsets.ModelViewSet):
                     raise ValueError(customer_serializer.errors)
 
                 # 2️⃣ Kiểm tra mã giảm giá (nếu có)
-                discount_id = data.get("discount")
                 discount_instance = None
+                discount_id = data.get("discount")
                 if discount_id:
                     try:
-                        discount_instance = Discount.objects.get(id=discount_id)
-                        if discount_instance.end_date < now() or not discount_instance.status:
-                            raise ValueError("Mã giảm giá không hợp lệ hoặc đã hết hạn")
+                        discount_instance = Discount.objects.select_for_update().get(id=discount_id)
+
+                        if discount_instance.status == 0:
+                            raise ValueError("Mã giảm giá đã được sử dụng")
+                        if discount_instance.end_date < now():
+                            raise ValueError("Mã giảm giá đã hết hạn")
+                        if discount_instance.status not in [1, 2]:
+                            raise ValueError("Mã giảm giá không hợp lệ")
+
                     except Discount.DoesNotExist:
                         raise ValueError("Mã giảm giá không tồn tại")
 
@@ -61,7 +67,14 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order_serializer = OrderSerializer(data=order_data)
                 if order_serializer.is_valid():
                     order = order_serializer.save()
+
+                    # 4️⃣ Cập nhật trạng thái mã giảm giá (nếu có)
+                    if discount_instance:
+                        discount_instance.status = 0  # Đánh dấu là đã sử dụng
+                        discount_instance.save()
+
                     return format_response(status.HTTP_201_CREATED, data=order_serializer.data)
+
                 else:
                     raise ValueError(order_serializer.errors)
 
@@ -69,6 +82,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return format_response(status.HTTP_400_BAD_REQUEST, status_text="error", error_message=str(e))
         except Exception:
             return format_response(status.HTTP_500_INTERNAL_SERVER_ERROR, status_text="error", error_message="Lỗi không xác định")
+
 
 
 class CustomerViewSet(viewsets.ModelViewSet):

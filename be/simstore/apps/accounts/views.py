@@ -37,8 +37,19 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
         if serializer.is_valid():
             self.perform_update(serializer)
+
+            # Nếu status cập nhật thành False, cập nhật status trong Account
+            if "status" in serializer.validated_data and serializer.validated_data["status"] is False:
+                try:
+                    account = instance.account  # Giả sử có quan hệ OneToOne hoặc ForeignKey
+                    account.status = False
+                    account.save()
+                except AttributeError:
+                    pass  # Nếu không có tài khoản, bỏ qua lỗi
+
             return Response({
                 "statuscode": status.HTTP_200_OK,
                 "data": serializer.data,
@@ -52,6 +63,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 "status": "error",
                 "errorMessage": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+
         
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
