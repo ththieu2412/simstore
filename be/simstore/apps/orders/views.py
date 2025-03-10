@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.utils.timezone import now
-from .models import Order, Customer, Discount, Payment
+from .models import Order, Customer, Discount, Payment, SIM
 from .serializers import OrderSerializer, CustomerSerializer, PaymentSerializer
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -52,6 +52,11 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                     except Discount.DoesNotExist:
                         raise ValueError("Mã giảm giá không tồn tại")
+                
+                # Kiểm tra SIM trước khi tạo đơn hàng
+                sim_instance = SIM.objects.select_for_update().get(id=data["sim"])
+                if sim_instance.status in [0, 1]:  # 0: Hết hàng, 1: Có sẵn
+                    raise ValueError("SIM không hợp lệ")
 
                 #Tạo đơn hàng mới
                 order_data = {
@@ -65,6 +70,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order_serializer = OrderSerializer(data=order_data)
                 if order_serializer.is_valid():
                     order = order_serializer.save()
+
+                    # Cập nhật trạng thái SIM về 0 (hết hàng)
+                    sim_instance = SIM.objects.select_for_update().get(id=data["sim"])
+                    sim_instance.status = 0
+                    sim_instance.save()
 
                     #Cập nhật trạng thái mã giảm giá
                     if discount_instance:
@@ -80,6 +90,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                         payment_method = payment_method,
                         status = 0
                     )
+
 
                     return format_response(status.HTTP_201_CREATED, data=order_serializer.data)
 
