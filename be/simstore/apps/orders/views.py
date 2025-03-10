@@ -110,12 +110,12 @@ class CustomerViewSet(viewsets.ModelViewSet):
         return format_response(status.HTTP_400_BAD_REQUEST, status_text="error", error_message=serializer.errors)
     
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()  # ✅ Đúng
+    queryset = Payment.objects.all()  # 
     serializer_class = PaymentSerializer
 
     def list(self, request):
         """Lấy danh sách Payment, có thể lọc theo status hoặc phương thức thanh toán."""
-        payments = self.queryset  # ✅ Định nghĩa trước
+        payments = self.queryset  
 
         # Lọc theo status nếu có
         status_filter = request.query_params.get("status")
@@ -132,7 +132,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk=None):
         """Cập nhật Payment (trạng thái hoặc phương thức thanh toán)"""
-        payment = get_object_or_404(Payment, pk=pk)  # ✅ Lấy object trước khi update
+        payment = get_object_or_404(Payment, pk=pk)  
 
         with transaction.atomic():  
             serializer = PaymentSerializer(payment, data=request.data, partial=True)
