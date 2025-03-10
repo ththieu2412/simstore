@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
-from .models import Order, Customer, Discount
+from .models import Order, Customer, Discount, Payment
 from .serializers import OrderSerializer, CustomerSerializer
 from django.db import transaction
 
@@ -71,6 +71,16 @@ class OrderViewSet(viewsets.ModelViewSet):
                     if discount_instance:
                         discount_instance.status = 0  # Đánh dấu là đã sử dụng
                         discount_instance.save()
+
+                    payment_method = data.get("payment")
+                    if payment_method not in dict(Payment.PAYMENT_METHOD_CHOICES):
+                        raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'tranfer'.")
+                    
+                    payment = Payment.objects.create(
+                        order = order,
+                        payment_method = payment_method,
+                        status = 0
+                    )
 
                     return format_response(status.HTTP_201_CREATED, data=order_serializer.data)
 

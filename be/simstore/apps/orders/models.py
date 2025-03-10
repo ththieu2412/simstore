@@ -112,8 +112,7 @@ class DetailUpdateOrder(models.Model):
 class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('cash', 'Tiền mặt'),
-        ('credit_card', 'Thẻ tín dụng'),
-        ('bank_transfer', 'Chuyển khoản ngân hàng')
+        ('transfer', 'Chuyển khoản')
     ]
 
     STATUS_CHOICES = [
