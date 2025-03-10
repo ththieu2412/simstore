@@ -25,8 +25,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         data = request.data
 
         try:
-            with transaction.atomic():  # Bắt đầu transaction
-                # 1️⃣ Kiểm tra hoặc tạo mới khách hàng
+            with transaction.atomic():  
+                #Kiểm tra hoặc tạo mới khách hàng
                 customer_data = data.get("customer")
                 if not customer_data:
                     raise ValueError("Thiếu thông tin khách hàng")
@@ -37,7 +37,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 else:
                     raise ValueError(customer_serializer.errors)
 
-                # 2️⃣ Kiểm tra mã giảm giá (nếu có)
+                # Kiểm tra mã giảm giá
                 discount_instance = None
                 discount_id = data.get("discount")
                 if discount_id:
@@ -48,15 +48,14 @@ class OrderViewSet(viewsets.ModelViewSet):
                             raise ValueError("Mã giảm giá đã được sử dụng")
                         if discount_instance.end_date < now():
                             raise ValueError("Mã giảm giá đã hết hạn")
-                        if discount_instance.status not in [1, 2]:
+                        if discount_instance.start_date > now():
                             raise ValueError("Mã giảm giá không hợp lệ")
 
                     except Discount.DoesNotExist:
                         raise ValueError("Mã giảm giá không tồn tại")
 
-                # 3️⃣ Tạo đơn hàng mới
+                #Tạo đơn hàng mới
                 order_data = {
-                    "status_order": data["status_order"],
                     "detailed_address": data["detailed_address"],
                     "sim": data["sim"],
                     "customer": customer.id,  # Dùng ID khách hàng vừa tạo
@@ -68,7 +67,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if order_serializer.is_valid():
                     order = order_serializer.save()
 
-                    # 4️⃣ Cập nhật trạng thái mã giảm giá (nếu có)
+                    #Cập nhật trạng thái mã giảm giá
                     if discount_instance:
                         discount_instance.status = 0  # Đánh dấu là đã sử dụng
                         discount_instance.save()
@@ -80,7 +79,8 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         except ValueError as e:
             return format_response(status.HTTP_400_BAD_REQUEST, status_text="error", error_message=str(e))
-        except Exception:
+        except Exception as e:
+            print(e)
             return format_response(status.HTTP_500_INTERNAL_SERVER_ERROR, status_text="error", error_message="Lỗi không xác định")
 
 

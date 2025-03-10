@@ -76,7 +76,7 @@ class Order(models.Model):
         """Tính tổng tiền đơn hàng dựa trên giá SIM và giảm giá."""
         total = self.sim.export_price
         if self.discount and self.discount.status:
-            discount_amount = total * self.discount.percentage 
+            discount_amount = total * self.discount.percentage / 100
             total -= discount_amount
         return total
 
