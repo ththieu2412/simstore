@@ -1,10 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
 from .models import Order, Customer, Discount, Payment
-from .serializers import OrderSerializer, CustomerSerializer
+from .serializers import OrderSerializer, CustomerSerializer, PaymentSerializer
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 def format_response(status_code, data=None, status_text="success", error_message=""):
     """ Hàm chuẩn hóa response JSON """
@@ -14,7 +14,6 @@ def format_response(status_code, data=None, status_text="success", error_message
         "status": status_text,
         "errorMessage": error_message
     }, status=status_code)
-
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
@@ -93,8 +92,6 @@ class OrderViewSet(viewsets.ModelViewSet):
             print(e)
             return format_response(status.HTTP_500_INTERNAL_SERVER_ERROR, status_text="error", error_message="Lỗi không xác định")
 
-
-
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
@@ -111,3 +108,43 @@ class CustomerViewSet(viewsets.ModelViewSet):
             return format_response(status.HTTP_200_OK, data=serializer.data)
 
         return format_response(status.HTTP_400_BAD_REQUEST, status_text="error", error_message=serializer.errors)
+    
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()  # ✅ Đúng
+    serializer_class = PaymentSerializer
+
+    def list(self, request):
+        """Lấy danh sách Payment, có thể lọc theo status hoặc phương thức thanh toán."""
+        payments = self.queryset  # ✅ Định nghĩa trước
+
+        # Lọc theo status nếu có
+        status_filter = request.query_params.get("status")
+        if status_filter is not None:
+            payments = payments.filter(status=status_filter)
+
+        # Lọc theo phương thức thanh toán nếu có
+        payment_method_filter = request.query_params.get("payment_method")
+        if payment_method_filter:
+            payments = payments.filter(payment_method=payment_method_filter)
+
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, pk=None):
+        """Cập nhật Payment (trạng thái hoặc phương thức thanh toán)"""
+        payment = get_object_or_404(Payment, pk=pk)  # ✅ Lấy object trước khi update
+
+        with transaction.atomic():  
+            serializer = PaymentSerializer(payment, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return format_response(
+                    status_code=status.HTTP_200_OK,
+                    data=serializer.data,
+                    status_text="success"
+                )
+            return format_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_text="error",
+                error_message=serializer.errors
+            )
