@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.utils.timezone import now
@@ -141,12 +142,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
         serializer = PaymentSerializer(payments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, *args, **kwargs):
         """Cập nhật Payment (trạng thái hoặc phương thức thanh toán)"""
         payment = get_object_or_404(Payment, pk=pk)  
 
         with transaction.atomic():  
-            serializer = PaymentSerializer(payment, data=request.data, partial=True)
+            data = request.data.copy()
+            data["updated_at"] = timezone.now()  # Gán lại thời gian hiện tại
+
+            serializer = PaymentSerializer(payment, data=data, partial=kwargs.get("partial", False))
             if serializer.is_valid():
                 serializer.save()
                 return format_response(
@@ -158,4 +162,4 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 status_text="error",
                 error_message=serializer.errors
-            )
+            )   

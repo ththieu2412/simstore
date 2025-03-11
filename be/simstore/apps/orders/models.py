@@ -124,6 +124,7 @@ class Payment(models.Model):
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES)
     status = models.IntegerField(choices=STATUS_CHOICES, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(null=True)
 
     def __str__(self):
         return f"Payment for Order {self.order.id} - {self.get_payment_method_display()}"
