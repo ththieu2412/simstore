@@ -84,7 +84,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                     payment_method = data.get("payment")
                     if payment_method not in dict(Payment.PAYMENT_METHOD_CHOICES):
-                        raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'tranfer'.")
+                        raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'transfer'.")
                     
                     payment = Payment.objects.create(
                         order = order,
@@ -145,6 +145,14 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def update(self, request, pk=None, *args, **kwargs):
         """Cập nhật Payment (trạng thái hoặc phương thức thanh toán)"""
         payment = get_object_or_404(Payment, pk=pk)  
+
+        # Không cho phép cập nhật nếu status đã là 1 (đã thanh toán)
+        if payment.status == 1:
+            return format_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_text="error",
+                error_message="Không thể cập nhật Payment đã thanh toán."
+            )
 
         with transaction.atomic():  
             data = request.data.copy()
