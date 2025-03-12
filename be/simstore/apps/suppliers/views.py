@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Supplier, ImportReceipt
 from .serializers import SupplierSerializer, ImportReceiptSerializer
-from django.utils.timezone import now
+from django.shortcuts import get_object_or_404
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -79,6 +79,7 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
+
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -97,3 +98,42 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
             "status": "error",
             "errorMessage": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # def destroy(self, request, pk=None):
+    #     """Xóa Order cùng các dữ liệu liên quan (Payment, Customer, SIM)"""
+    #     import_receipt = get_object_or_404(ImportReceipt, pk=pk)
+
+    #     # Kiểm tra trạng thái SIM
+    #     if import_receipt.sim.status in [0,2]:  
+    #         return format_response(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             status_text="error",
+    #             error_message="SIM đang được đăng bán hoặc đã bán"
+    #         )
+
+    #     with transaction.atomic():
+    #         try:
+    #             # 2️⃣ Xóa Payment liên quan đến Order
+    #             Payment.objects.filter(order=order).delete()
+
+    #             # 3️⃣ Xóa Customer dựa vào order.customer_id
+    #             Customer.objects.filter(id=order.customer_id).delete()
+
+    #             # 4️⃣ Xóa SIM dựa vào order.sim_id
+    #             SIM.objects.filter(id=order.sim_id).delete()
+
+    #             # 5️⃣ Xóa Order
+    #             order.delete()
+
+    #             return format_response(
+    #                 status_code=status.HTTP_200_OK,
+    #                 status_text="success",
+    #                 data={"message": "Order và các dữ liệu liên quan đã được xóa thành công."}
+    #             )
+
+    #         except Exception as e:
+    #             return format_response(
+    #                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #                 status_text="error",
+    #                 error_message=f"Lỗi trong quá trình xóa dữ liệu: {str(e)}"
+    #             )

@@ -2,8 +2,8 @@ from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.utils.timezone import now
-from .models import Order, Customer, Discount, Payment, SIM
-from .serializers import OrderSerializer, CustomerSerializer, PaymentSerializer
+from .models import Order, Customer, Discount, Payment, SIM, Employee, DetailUpdateOrder
+from .serializers import OrderSerializer, CustomerSerializer, PaymentSerializer, DiscountSerializer
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
@@ -19,7 +19,6 @@ def format_response(status_code, data=None, status_text="success", error_message
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    http_method_names = ["get", "post", "put", "patch"]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -84,7 +83,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                     payment_method = data.get("payment")
                     if payment_method not in dict(Payment.PAYMENT_METHOD_CHOICES):
-                        raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'transfer'.")
+                        raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'tranfer'.")
                     
                     payment = Payment.objects.create(
                         order = order,
@@ -103,6 +102,76 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(e)
             return format_response(status.HTTP_500_INTERNAL_SERVER_ERROR, status_text="error", error_message="Lỗi không xác định")
+
+    def update(self, request, pk=None, *args, **kwargs):
+        """Cập nhật đơn hàng """
+        order = get_object_or_404(Order, pk=pk)
+        data = request.data.copy()
+        employee_id = data.get("employee_id", None)
+
+        #Không cho phép cập nhật nếu đơn hàng đã hủy
+        if order.status_order == 0:
+            return format_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_text="error",
+                error_message="Không thể cập nhật đơn hàng đã hủy."
+            )
+        
+        if order.status_order == 3:
+            return format_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                status_text="error",
+                error_message="Không thể cập nhật đơn hàng đã giao thành công."
+            )
+
+        #Lưu trạng thái cũ trước khi cập nhật
+        old_status = order.status_order  
+        new_status = data.get("status_order", None)
+
+        with transaction.atomic():
+            try:
+                if new_status is not None and new_status != old_status:
+                    if employee_id is None:
+                        return format_response(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            status_text="error",
+                            error_message="Cần cung cấp employee_id để cập nhật trạng thái."
+                        )
+                    
+                    employee = get_object_or_404(Employee, pk=employee_id)
+                    DetailUpdateOrder.objects.create(
+                        order=order,
+                        status_updated=new_status,
+                        employee=employee,
+                        updated_at=timezone.now()
+                    )
+                    order.status_order = new_status
+
+                #Cập nhật các trường khác
+                fields_to_update = ["detailed_address", "ward", "note", "discount"]
+                for field in fields_to_update:
+                    if field in data:
+                        setattr(order, field, data[field])
+
+                #Tính lại total_price nếu có thay đổi giảm giá
+                if "discount" in data or "sim" in data:
+                    order.total_price = order.calculate_total_price()
+                    
+                order.save()
+
+                #Trả về response chuẩn
+                return format_response(
+                    status_code=status.HTTP_200_OK,
+                    status_text="success",
+                    data={"order_id": order.id, "new_status": order.status_order}
+                )
+
+            except Exception as e:
+                return format_response(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    status_text="error",
+                    error_message=f"Lỗi trong quá trình cập nhật: {str(e)}"
+                )
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -171,3 +240,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 status_text="error",
                 error_message=serializer.errors
             )   
+
+
+class DiscountViewSet(viewsets.ModelViewSet):
+    queryset = Discount.objects.all()
+    serializer_class = DiscountSerializer
+    # permission_classes = [IsAuthenticated]  # Chỉ cho phép người dùng đã đăng nhập truy cập
+
+    def perform_create(self, serializer):
+        # Có thể thêm logic xử lý trước khi tạo
+        serializer.save()

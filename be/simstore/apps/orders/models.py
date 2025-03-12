@@ -2,7 +2,7 @@ from django.db import models
 from apps.locations.models import Ward
 from apps.simcards.models import SIM
 from apps.accounts.models import Employee
-from django.core.exceptions import ValidationError
+from django.utils.timezone import now
 
 class Customer(models.Model):
     full_name = models.CharField(max_length=255)
@@ -22,12 +22,20 @@ class Discount(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     description = models.TextField(null=True, blank=True)
-    status = models.BooleanField(default=True)  # True nếu còn hiệu lực
+    status = models.BooleanField(default=True)
+    discount_code = models.CharField(max_length=50, blank=True)
     employee = models.ForeignKey(
-        Employee,  # Liên kết tới model Employee
-        on_delete=models.CASCADE,  # Xóa bản ghi nếu nhân viên bị xóa
-        related_name='discount_records'  # Tạo quan hệ ngược
+        Employee,  
+        on_delete=models.CASCADE, 
+        related_name='discount_records'
     )
+
+    def save(self, *args, **kwargs):
+        date_str = now().strftime("%d%m%y")  # Lấy ngày tháng năm (DDMMYY)
+        last_discount = Discount.objects.order_by('-id').first()  # Lấy ID lớn nhất
+        next_id = last_discount.id + 1 if last_discount else 1  # ID tiếp theo
+        self.discount_code = f"MGG{date_str}{next_id}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.percentage}% discount"
@@ -55,22 +63,12 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     created_at = models.DateTimeField(auto_now_add=True)  
-    updated_at = models.DateTimeField(auto_now=True)  
 
     def __str__(self):
         return f"Order {self.id} for {self.customer.full_name}"
     
     class Meta:
         db_table = 'order'
-
-    def update_status(self, new_status):
-        """
-        Cập nhật trạng thái đơn hàng, không thể cập nhật nếu đơn đã giao hàng hoặc đã hủy.
-        """
-        if self.status_order in [0, 3]:  # Đơn đã hủy hoặc đã giao hàng
-            raise ValidationError("Không thể cập nhật đơn hàng đã hoàn thành hoặc đã hủy.")
-        self.status_order = new_status
-        self.save()
 
     def calculate_total_price(self):
         """Tính tổng tiền đơn hàng dựa trên giá SIM và giảm giá."""
