@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_rest_passwordreset',
     
     'rest_framework',
     'rest_framework_simplejwt',
@@ -156,6 +157,16 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_BLACKLIST": True,
 }
+
+# Cấu hình email để gửi reset link
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"  # Máy chủ SMTP của Gmail
+EMAIL_PORT = 465  # Cổng SMTP của Gmail
+EMAIL_USE_TLS = False  # Sử dụng TLS để mã hóa email
+EMAIL_USE_SSL = True  # Không dùng SSL (Chỉ chọn một trong hai: TLS hoặc SSL)
+EMAIL_HOST_USER = "ththieu2412@gmail.com"  # Thay bằng email thật của bạn
+EMAIL_HOST_PASSWORD = "tdlp yrkw kwax pfjl"  # Mật khẩu ứng dụng (không phải mật khẩu email)
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # Email mặc định gửi đi
 
 
 

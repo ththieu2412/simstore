@@ -22,7 +22,7 @@ class Discount(models.Model):
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     description = models.TextField(null=True, blank=True)
-    status = models.BooleanField(default=True)
+    status = models.BooleanField(default=False)
     discount_code = models.CharField(max_length=50, blank=True)
     employee = models.ForeignKey(
         Employee,  

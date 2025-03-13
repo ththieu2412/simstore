@@ -4,6 +4,15 @@ import re
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+from django.core.mail import send_mail
+from django.urls import reverse
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -123,3 +132,39 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Username và password không được để trống.")
         return data
 
+User = get_user_model()
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            employee = Employee.objects.get(email=value)  # Tìm employee theo email
+
+            if not employee.status:
+                raise serializers.ValidationError("Tài khoản này đã bị vô hiệu hóa.")
+            
+            user = Account.objects.get(employee=employee)  # Lấy tài khoản liên kết với employee
+        except (Employee.DoesNotExist, Account.DoesNotExist):
+            raise serializers.ValidationError("Email không tồn tại trong hệ thống.")
+
+        return value
+
+    def send_reset_email(self, request):
+        email = self.validated_data['email']
+        employee = Employee.objects.get(email=email)
+        user = Account.objects.get(employee=employee)
+
+        # Tạo token và UID cho đặt lại mật khẩu
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_url = request.build_absolute_uri(reverse('password-reset-confirm', kwargs={'uidb64': uid, 'token': token}))
+
+        # Gửi email đặt lại mật khẩu
+        send_mail(
+            'Password Reset Request',
+            f'Click the link below to reset your password:\n{reset_url}',
+            'ththieu2412@gmail.com',
+            [email],
+            fail_silently=False,
+        )

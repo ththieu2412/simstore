@@ -43,7 +43,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     try:
                         discount_instance = Discount.objects.select_for_update().get(id=discount_id)
 
-                        if discount_instance.status == 0:
+                        if discount_instance.status == 1:
                             raise ValueError("Mã giảm giá đã được sử dụng")
                         if discount_instance.end_date < now():
                             raise ValueError("Mã giảm giá đã hết hạn")
@@ -78,7 +78,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                     #Cập nhật trạng thái mã giảm giá
                     if discount_instance:
-                        discount_instance.status = 0  # Đánh dấu là đã sử dụng
+                        discount_instance.status = 1  # Đánh dấu là đã sử dụng
                         discount_instance.save()
 
                     payment_method = data.get("payment")
@@ -245,8 +245,37 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class DiscountViewSet(viewsets.ModelViewSet):
     queryset = Discount.objects.all()
     serializer_class = DiscountSerializer
-    # permission_classes = [IsAuthenticated]  # Chỉ cho phép người dùng đã đăng nhập truy cập
 
-    def perform_create(self, serializer):
-        # Có thể thêm logic xử lý trước khi tạo
-        serializer.save()
+    def create(self, request, *args, **kwargs):
+        """ Xử lý tạo mới bản ghi """
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return format_response(status.HTTP_201_CREATED, serializer.data)
+        return format_response(status.HTTP_400_BAD_REQUEST, error_message=serializer.errors)
+
+    def update(self, request, *args, **kwargs):
+        """ Xử lý cập nhật bản ghi """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        if instance.status:
+            return format_response(status.HTTP_400_BAD_REQUEST, 
+                                   status_text="error",
+                                   error_message={"status": "Không thể cập nhật khi khuyến mãi đã được sử dụng."})
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            return format_response(status.HTTP_200_OK, serializer.data)
+        return format_response(status.HTTP_400_BAD_REQUEST, error_message=serializer.errors)
+
+    def destroy(self, request, *args, **kwargs):
+        """ Xóa bản ghi nhưng kiểm tra trước khi xóa """
+        instance = self.get_object()
+        
+        if instance.status:
+            return format_response(status.HTTP_400_BAD_REQUEST, 
+                                   status_text="error",
+                                   error_message={"status": "Không thể xóa khi khuyến mãi đã được sử dụng."})
+
+        self.perform_destroy(instance)
+        return format_response(status.HTTP_204_NO_CONTENT, status_text="deleted")

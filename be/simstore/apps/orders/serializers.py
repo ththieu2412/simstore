@@ -2,6 +2,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from .models import Order, Customer, Payment, Discount
 from django.utils.timezone import now
+from django.utils import timezone
+from datetime import datetime
 
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,6 +25,22 @@ class PaymentSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 class DiscountSerializer(serializers.ModelSerializer):
+    start_date = serializers.DateTimeField(
+        input_formats=[
+            "%Y-%m-%d %H:%M:%S",   # 2025-03-04 08:30:00
+            "%Y-%m-%dT%H:%M:%SZ",  # 2025-03-04T08:30:00Z (ISO 8601)
+            "%Y-%m-%dT%H:%M:%S%z", # 2025-03-04T08:30:00+07:00
+        ],
+        format="%Y-%m-%d %H:%M:%S"
+    )
+    end_date = serializers.DateTimeField(
+        input_formats=[
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S%z",
+        ],
+        format="%Y-%m-%d %H:%M:%S"
+    )
     class Meta:
         model = Discount
         fields = '__all__'
@@ -41,28 +59,37 @@ class DiscountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"percentage": "Phần trăm giảm giá phải lớn hơn 0 và nhỏ hơn 100."})
 
         if start_date and end_date and start_date >= end_date:
-            raise serializers.ValidationError({"start_date": "Ngày bắt đầu phải nhỏ hơn ngày kết thúc."})
+            raise serializers.ValidationError({"start_date": "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc."})
 
         return data
 
-    def create(self, validated_data):
+    # def create(self, validated_data):
+    #     """
+    #     Xử lý logic status trước khi lưu.
+    #     """
+    #     start_date = validated_data.get('start_date')
+
+    #     # Nếu start_date > hiện tại thì status = False (chưa có hiệu lực)
+    #     validated_data['status'] = start_date < now()
+
+    #     return super().create(validated_data)
+
+
+    def to_representation(self, instance):
         """
-        Xử lý logic status trước khi lưu.
+        Format lại start_date và end_date trước khi trả về.
         """
-        start_date = validated_data.get('start_date')
+        data = super().to_representation(instance)
 
-        # Nếu start_date > hiện tại thì status = False (chưa có hiệu lực)
-        validated_data['status'] = start_date > now()
+        def format_datetime(value):
+            if value:
+                # Nếu `value` không có thông tin về múi giờ, chuyển nó sang aware datetime
+                if timezone.is_naive(value):
+                    value = timezone.make_aware(value)
+                return timezone.localtime(value).strftime("%Y-%m-%d %H:%M:%S")
+            return None
 
-        return super().create(validated_data)
+        data['start_date'] = format_datetime(instance.start_date)
+        data['end_date'] = format_datetime(instance.end_date)
 
-    def update(self, instance, validated_data):
-        """
-        Cập nhật status khi sửa.
-        """
-        start_date = validated_data.get('start_date', instance.start_date)
-
-        # Cập nhật status theo start_date
-        validated_data['status'] = start_date > now()
-
-        return super().update(instance, validated_data)
+        return data

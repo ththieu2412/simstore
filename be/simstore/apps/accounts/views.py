@@ -1,15 +1,34 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from .serializers import EmployeeSerializer, AccountSerializer, RoleSerializer, LoginSerializer
-from .models import Employee, Account, Role
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.views import APIView
+# Thư viện Django
 from django.contrib.auth.models import update_last_login
-from rest_framework.decorators import action
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
 from django.db.models import ProtectedError
-from simstore.permissions import IsAdminPermission
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.shortcuts import get_object_or_404
+
+# Thư viện Django REST Framework
+from rest_framework import viewsets, status, generics
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+
+# Models
+from .models import Employee, Account, Role
+
+# Serializers
+from .serializers import (
+    EmployeeSerializer, 
+    AccountSerializer, 
+    RoleSerializer, 
+    LoginSerializer, 
+    PasswordResetRequestSerializer
+)
+
+# Permissions
+from simstore.permissions import IsAdminPermission
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
@@ -278,6 +297,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):
+
     # permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -292,3 +312,67 @@ class LogoutView(APIView):
             return Response({"message": "Logout successful"}, status=200)
         except Exception as e:
             return Response({"error": "Invalid token"}, status=400)  
+        
+User = get_user_model()
+
+class PasswordResetRequestView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.send_reset_email(request)
+            return Response({
+                "statuscode": status.HTTP_200_OK,
+                "data": None,
+                "status": "success",
+                "errorMessage": None
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "statuscode": status.HTTP_400_BAD_REQUEST,
+            "data": None,
+            "status": "error",
+            "errorMessage": "Dữ liệu không hợp lệ.",
+            "errors": serializer.errors  # Thêm chi tiết lỗi để debug
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView):
+    def post(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = get_object_or_404(User, pk=uid)
+
+            if default_token_generator.check_token(user, token):
+                new_password = request.data.get('new_password')
+                if not new_password:
+                    return Response({
+                        "statuscode": status.HTTP_400_BAD_REQUEST,
+                        "data": None,
+                        "status": "error",
+                        "errorMessage": "Mật khẩu mới là bắt buộc."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                user.set_password(new_password)
+                user.save()
+                return Response({
+                    "statuscode": status.HTTP_200_OK,
+                    "data": None,
+                    "status": "success",
+                    "errorMessage": None
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "statuscode": status.HTTP_400_BAD_REQUEST,
+                    "data": None,
+                    "status": "error",
+                    "errorMessage": "Token không hợp lệ hoặc đã hết hạn."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                "statuscode": status.HTTP_400_BAD_REQUEST,
+                "data": None,
+                "status": "error",
+                "errorMessage": "Đã xảy ra lỗi.",
+                "errors": str(e)  # Hiển thị lỗi chi tiết nếu cần debug
+            }, status=status.HTTP_400_BAD_REQUEST)
