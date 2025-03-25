@@ -26,7 +26,7 @@ class ImportReceipt(models.Model):
         return f"Import Receipt {self.id} from {self.supplier.name}"
     
     class Meta:
-        db_table = 'importReceipt'
+        db_table = 'import_receipt'
 
 
 class ImportReceiptDetail(models.Model):
@@ -38,7 +38,7 @@ class ImportReceiptDetail(models.Model):
         return f"Receipt {self.import_receipt.id} - SIM {self.sim.id}"
 
     class Meta:
-        db_table = 'importReceiptDetail'
+        db_table = 'import_receipt_detail'
         constraints = [
             models.UniqueConstraint(fields=['import_receipt', 'sim'], name='unique_import_sim')
         ]

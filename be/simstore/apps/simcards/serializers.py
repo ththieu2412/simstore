@@ -18,6 +18,7 @@ class Category2Serializer(serializers.ModelSerializer):
 
 class SimSerializer(serializers.ModelSerializer):
     created_at = serializers.SerializerMethodField()
+    updated_at = serializers.SerializerMethodField()
 
     class Meta:
         model = SIM
@@ -27,6 +28,10 @@ class SimSerializer(serializers.ModelSerializer):
     def get_created_at(self, obj):
             """Chuyển đổi định dạng ngày tháng"""
             return obj.created_at.strftime("%d/%m/%Y %H:%M:%S") if obj.created_at else None
+    
+    def get_updated_at(self, obj):
+            """Chuyển đổi định dạng ngày tháng"""
+            return obj.updated_at.strftime("%d/%m/%Y %H:%M:%S") if obj.updated_at else None
     
     def validate_phone_number(self, value):
         """Kiểm tra số điện thoại đã tồn tại chưa"""

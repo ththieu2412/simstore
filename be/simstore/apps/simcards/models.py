@@ -1,5 +1,6 @@
 from django.db import models
 from apps.accounts.models import Employee
+from django.core.validators import RegexValidator
 
 class MobileNetworkOperator(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -8,7 +9,7 @@ class MobileNetworkOperator(models.Model):
         return self.name
     
     class Meta:
-        db_table = 'mobileNetworkOperator'
+        db_table = 'mobile_network_operator'
 
 class Category1(models.Model):
     name = models.CharField(max_length=255)
@@ -18,7 +19,7 @@ class Category1(models.Model):
         return self.name
 
     class Meta:
-        db_table = 'category1'
+        db_table = 'category_1'
 
 class Category2(models.Model):
     name = models.CharField(max_length=255)
@@ -28,7 +29,7 @@ class Category2(models.Model):
         return self.name
     
     class Meta:
-        db_table = 'category2'
+        db_table = 'category_2'
 
 class SIM(models.Model):
     SIM_TYPE_CHOICES = [
@@ -42,7 +43,11 @@ class SIM(models.Model):
         (2, 'Đang đăng bán'),
     ]
 
-    phone_number = models.CharField(max_length=15, unique=True)
+    phone_number = models.CharField(
+        max_length=15,
+        unique=True,
+        validators=[RegexValidator(r'^\d{9,15}$', 'Số điện thoại không hợp lệ!')]
+    )
     mobile_network_operator = models.ForeignKey(MobileNetworkOperator, on_delete=models.CASCADE)
     category_1 = models.ForeignKey(Category1, on_delete=models.CASCADE)
     category_2 = models.ForeignKey(Category2, on_delete=models.CASCADE)
@@ -58,7 +63,9 @@ class SIM(models.Model):
         choices=STATUS_CHOICES,
         default=1  # Mặc định là "Có sẵn"
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
         return self.phone_number

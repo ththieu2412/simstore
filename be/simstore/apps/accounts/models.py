@@ -28,7 +28,7 @@ class Role(models.Model):
         db_table = 'role'
 
 class Account(AbstractUser):  
-    status = models.BooleanField(default=1)# Kế thừa từ AbstractUser
+    # status = models.BooleanField(default=1)# Kế thừa từ AbstractUser
     role = models.ForeignKey('Role', on_delete=models.PROTECT)
     employee = models.OneToOneField('Employee', on_delete=models.PROTECT, blank=False)
 
@@ -39,6 +39,7 @@ class Account(AbstractUser):
     last_name = None
     is_staff = None
     date_joined = None
+    # is_active = None
     
     def __str__(self):
         return self.username

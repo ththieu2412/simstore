@@ -170,6 +170,7 @@ class RoleViewSet(viewsets.ModelViewSet):
                 "status": "error",
                 "errorMessage": "Không thể xóa role vì có dữ liệu liên quan."
             }, status=status.HTTP_400_BAD_REQUEST)
+
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
@@ -242,8 +243,6 @@ class AccountViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def login(self, request):
         """API Login - Xác thực bằng JWT"""
-        print("Kiểm tra data nhập vào")
-        print(request.data)
 
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -253,10 +252,12 @@ class AccountViewSet(viewsets.ModelViewSet):
             try:
                 account = Account.objects.get(username=username)
                 if not account.is_active:
-                    return Response(
-                        {"error": "Account is inactive. Please contact the administrator."},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
+                    return Response({
+                        "statuscode": status.HTTP_403_FORBIDDEN,
+                        "data": None,
+                        "status": "error",
+                        "errorMessage": "Tài khoản bị vô hiệu hóa!"
+                    }, status=status.HTTP_403_FORBIDDEN)
 
                 if check_password(password, account.password):  # Kiểm tra mật khẩu
                     # Tạo JWT Token
@@ -269,7 +270,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                             "access_token": str(refresh.access_token),
                             "refresh_token": str(refresh),
                             "username": account.username,
-                            "role": account.role.role_name
+                            "role": account.role.role_name,
+                            "employee_id": account.employee.id
                         },
                         "status": "success",
                         "errorMessage": None

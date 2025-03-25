@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import MobileNetworkOperator, Category1, Category2, SIM
 from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimSerializer
+from django.utils.timezone import now
 
 class BaseViewSet(viewsets.ModelViewSet):
     """
@@ -64,17 +65,21 @@ class Category2ViewSet(BaseViewSet):
     queryset = Category2.objects.all()
     serializer_class = Category2Serializer
 
-class SimViewSet(viewsets.ModelViewSet):
+class SimViewSet(BaseViewSet):
     queryset = SIM.objects.all()
     serializer_class = SimSerializer
 
-    def destroy(self, request, *args, **kwargs):
-        """Xóa SIM"""
+    def update(self, request, *args, **kwargs):
+        """Cập nhật SIM (Chỉ cập nhật khi status khác 0)"""
         instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response({
-            "statuscode": status.HTTP_204_NO_CONTENT,
-            "data": None,
-            "status": "success",
-            "errorMessage": None
-        }, status=status.HTTP_204_NO_CONTENT)
+
+        if instance.status == 0:
+            return Response({
+                "statuscode": status.HTTP_400_BAD_REQUEST,
+                "data": None,
+                "status": "error",
+                "errorMessage": "Không thể cật nhật SIM đã hết hàng"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        return super().update(request, *args, **kwargs)

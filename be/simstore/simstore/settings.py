@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.simcards',
     'apps.orders',
     'apps.locations',
+    'apps.reports',
 ]
 
 MIDDLEWARE = [
@@ -144,6 +145,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    "EXCEPTION_HANDLER": "apps.accounts.exception_handler.custom_exception_handler",
     # 'DEFAULT_PERMISSION_CLASSES': (
     #     'rest_framework.permissions.IsAuthenticated',
     # )

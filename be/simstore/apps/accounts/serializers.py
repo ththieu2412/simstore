@@ -56,7 +56,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['id', 'username', 'password', 'role', 'employee', 'status']
+        fields = ['id', 'username', 'password', 'role', 'employee', 'is_active']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -125,6 +125,10 @@ class RoleSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(max_length=255, write_only=True)
+ 
+    class Meta:
+        model = Account
+        fields = ['employee']
 
     def validate(self, data):
         """Kiểm tra dữ liệu đầu vào"""
