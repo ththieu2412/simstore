@@ -52,17 +52,47 @@ INSTALLED_APPS = [
     'apps.orders',
     'apps.locations',
     'apps.reports',
+
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Cors settings
+# https://pypi.org/project/django-cors-headers/
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+)
 
 ROOT_URLCONF = 'simstore.urls'
 
@@ -93,7 +123,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "simstore",
         "USER": "root",
-        "PASSWORD": "Hieu24122003@",  
+        "PASSWORD": "123456",  
         "HOST": "localhost",
         "PORT": "3306",
     }
