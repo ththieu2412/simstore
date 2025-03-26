@@ -1,60 +1,152 @@
 from django.utils.timezone import now
 from django.db.models import Sum, Count
+from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from apps.simcards.models import SIM
 from rest_framework import status
+from rest_framework.decorators import action
+from apps.simcards.models import SIM
+from apps.suppliers.models import ImportReceiptDetail
+from datetime import datetime
 
-# Create your views here.
-class MonthlyRevenueReport(APIView):
-    def get(self, request, *args, **kwargs):
-        month = request.query_params.get('month', now().month)
-        year = request.query_params.get('year', now().year)
+class MonthlyRevenueReportViewSet(ViewSet):
+    @action(detail=False, methods=['get'], url_path='revenue')
+    def revenue(self, request):
+        return self._process_report(request, 'revenue')
 
+    @action(detail=False, methods=['get'], url_path='summary')
+    def summary(self, request):
+        return self._process_report(request, 'summary')
+
+    def _process_report(self, request, action):
         try:
-            month = int(month)
-            year = int(year)
-        except ValueError:
-            return Response({
-                "statuscode": status.HTTP_400_BAD_REQUEST,
-                "data": None,
-                "status": "error",
-                "errorMessage": "Tháng và năm phải là số nguyên!"
-            }, status=status.HTTP_400_BAD_REQUEST)
+            month = request.query_params.get('month', str(now().month))
+            year = request.query_params.get('year', str(now().year))
+            start_date = request.query_params.get('start_date')
+            end_date = request.query_params.get('end_date')
 
-        if not (1 <= month <= 12):
-            return Response({
-                "statuscode": status.HTTP_400_BAD_REQUEST,
-                "data": None,
-                "status": "error",
-                "errorMessage": "Tháng phải nằm trong khoảng 1-12!"
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if start_date and end_date:
+                try:
+                    start = datetime.strptime(start_date, '%Y-%m-%d')
+                    end = datetime.strptime(end_date, '%Y-%m-%d')
+                    if start > end:
+                        return self._error_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!"
+                        )
+                except ValueError:
+                    return self._error_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        "Định dạng ngày không hợp lệ! Sử dụng YYYY-MM-DD"
+                    )
+                sold_sims = SIM.objects.filter(
+                    status=0,
+                    updated_at__range=(start, end)
+                ).select_related('importReceiptDetail')
+                period_label = f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
+            else:
+                try:
+                    month = int(month)
+                    year = int(year)
+                    if not (1 <= month <= 12):
+                        return self._error_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            "Tháng phải nằm trong khoảng 1-12!"
+                        )
+                except ValueError:
+                    return self._error_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        "Tháng và năm phải là số nguyên!"
+                    )
+                sold_sims = SIM.objects.filter(
+                    status=0,
+                    updated_at__year=year,
+                    updated_at__month=month
+                ).select_related('importReceiptDetail')
+                period_label = f"{month:02d}-{year}"
 
-        sold_sims = SIM.objects.filter(
-            status=0,
-            updated_at__year=year,
-            updated_at__month=month
-        )
+            if not sold_sims.exists():
+                data = self._empty_data(period_label)
+                return self._success_response(data)
 
-        report = sold_sims.aggregate(
-            total_revenue=Sum('export_price'),
-            total_sims_sold=Count('id')
-        )
+            if action == 'revenue':
+                data = self._get_revenue_report(sold_sims, period_label)
+            elif action == 'summary':
+                data = self._get_summary_report(sold_sims, period_label)
+            return self._success_response(data)
 
-        # Lấy danh sách mã SIM đã bán
-        sold_sim_codes = sold_sims.values_list('id', flat=True)  
+        except Exception as e:
+            return self._error_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                str(e)
+            )
 
-        data = {
-            "year": year,
-            "month": month,
-            "total_revenue": report["total_revenue"] or 0,
-            "total_sims_sold": report["total_sims_sold"] or 0,
-            "sold_sim_codes": list(sold_sim_codes)  # Chuyển QuerySet thành list
-        }
+    def _error_response(self, status_code, message):
+        """Helper method để tạo response lỗi"""
+        return Response({
+            "statuscode": status_code,
+            "data": None,
+            "status": "error",
+            "errorMessage": message
+        }, status=status_code)
 
+    def _success_response(self, data):
+        """Helper method để tạo response thành công"""
         return Response({
             "statuscode": status.HTTP_200_OK,
             "data": data,
             "status": "success",
             "errorMessage": None
         }, status=status.HTTP_200_OK)
+
+    def _empty_data(self, period_label):
+        """Trả về dữ liệu mặc định khi không có SIM nào"""
+        return {
+            "period": period_label,
+            "total_revenue": 0.0,
+            "total_sims_sold": 0,
+            "sold_sim_codes": [],
+            "total_cost": 0.0,
+            "total_profit": 0.0,
+            "details": []
+        }
+
+    def _get_revenue_report(self, sold_sims, period_label):
+        """Xử lý báo cáo doanh thu chi tiết"""
+        report = sold_sims.aggregate(
+            total_revenue=Sum('export_price'),
+            total_cost=Sum('importReceiptDetail__import_price'),
+            total_sims_sold=Count('id')
+        )
+
+        details = [{
+            'phone_number': sim.phone_number,
+            'import_price': float(sim.importReceiptDetail.import_price),
+            'export_price': float(sim.export_price),
+            'profit': float(sim.export_price - sim.importReceiptDetail.import_price),
+            'sold_date': sim.updated_at.strftime('%d-%m-%Y %H:%M:%S')
+        } for sim in sold_sims]
+
+        return {
+            "period": period_label,
+            "total_revenue": float(report["total_revenue"] or 0),
+            "total_cost": float(report["total_cost"] or 0),
+            "total_profit": float((report["total_revenue"] or 0) - (report["total_cost"] or 0)),
+            "total_sims_sold": report["total_sims_sold"] or 0,
+            "sold_sim_codes": list(sold_sims.values_list('id', flat=True)),
+            "details": details
+        }
+
+    def _get_summary_report(self, sold_sims, period_label):
+        """Xử lý báo cáo tổng hợp"""
+        report = sold_sims.aggregate(
+            total_revenue=Sum('export_price'),
+            total_sims_sold=Count('id')
+        )
+
+        return {
+            "period": period_label,
+            "total_revenue": float(report["total_revenue"] or 0),
+            "total_sims_sold": report["total_sims_sold"] or 0,
+            "sold_sim_codes": list(sold_sims.values_list('id', flat=True))
+        }
+
