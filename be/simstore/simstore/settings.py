@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -123,7 +124,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "simstore",
         "USER": "root",
-        "PASSWORD": "123456",  
+        "PASSWORD": "Hieu24122003@",  
         "HOST": "localhost",
         "PORT": "3306",
     }
@@ -200,5 +201,6 @@ EMAIL_HOST_USER = "ththieu2412@gmail.com"  # Thay bằng email thật của bạ
 EMAIL_HOST_PASSWORD = "tdlp yrkw kwax pfjl"  # Mật khẩu ứng dụng (không phải mật khẩu email)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # Email mặc định gửi đi
 
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
