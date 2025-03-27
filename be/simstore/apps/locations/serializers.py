@@ -20,7 +20,7 @@ class WardSerializer(serializers.ModelSerializer):
     province_name = serializers.CharField(source='district.province.name', read_only=True)
     district = serializers.PrimaryKeyRelatedField(
         queryset=District.objects.all(), write_only=True
-    )  # Chỉ dùng khi POST, không hiển thị khi GET
+    )
 
     class Meta:
         model = Ward
