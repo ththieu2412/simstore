@@ -9,7 +9,7 @@ class Employee(models.Model):
     phone_number = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True)
     address = models.TextField()
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='image/', null=True, blank=True)
     status = models.BooleanField(default=True)
 
     def __str__(self):

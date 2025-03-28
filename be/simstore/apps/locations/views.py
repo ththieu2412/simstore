@@ -1,10 +1,8 @@
 from rest_framework import status, viewsets
-from rest_framework.views import APIView
 
 from utils import api_response
 from .models import District, Province, Ward
 from .serializers import DistrictSerializer, ProvinceSerializer, WardSerializer
-
 
 class CustomViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):

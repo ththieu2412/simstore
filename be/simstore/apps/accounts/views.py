@@ -42,12 +42,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return api_response(status.HTTP_201_CREATED, data=serializer.data)
         else:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-            # return Response({
-            #     "statuscode": status.HTTP_400_BAD_REQUEST,
-            #     "data": None,
-            #     "status": "error",
-            #     "errorMessage": serializer.errors
-            # }, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
