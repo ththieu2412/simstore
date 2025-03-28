@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Detail</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        .avatar-container {
+            margin-bottom: 25px;
+        }
+        .avatar-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .avatar-img:hover {
+            transform: scale(1.05);
+        }
+        h2 {
+            color: #2196f3;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        .detail-list {
+            max-width: 500px;
+            margin: 0 auto 30px;
+            text-align: left;
+        }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e8ecef;
+        }
+        .detail-item i {
+            width: 30px;
+            color: #2196f3;
+            font-size: 18px;
+        }
+        .detail-item label {
+            font-weight: 600;
+            color: #495057;
+            width: 150px;
+        }
+        .detail-item span, .detail-item input, .detail-item select {
+            color: #6c757d;
+            flex: 1;
+            font-size: 14px;
+        }
+        .detail-item input, .detail-item select {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background: #fff;
+            transition: border-color 0.3s ease;
+        }
+        .detail-item input:focus, .detail-item select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+        }
+        .detail-item input[type="file"] {
+            padding: 5px 0;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #e0a800;
+            box-shadow: 0 4px 10px rgba(255, 193, 7, 0.3);
+        }
+        .save-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+        .save-btn:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #d32f2f;
+            box-shadow: 0 4px 10px rgba(244, 67, 54, 0.3);
+        }
+        .error {
+            color: #f44336;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="avatar-container">
+            <img id="employeeAvatar" class="avatar-img" alt="Avatar" onerror="this.src='https://via.placeholder.com/120'" />
+            <h2 id="employeeName"></h2>
+        </div>
+        <div class="detail-list" id="employeeDetail"></div>
+        <div class="button-group" id="buttonGroup">
+            <button class="edit-btn" onclick="startEditing()">Edit</button>
+            <button class="delete-btn" onclick="deleteEmployee()">Delete</button>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = "http://localhost:8000/api/accounts/employees/";
+        let currentEmployee = null;
+        let isEditing = false;
+
+        function getEmployeeId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("id");
+        }
+
+        async function fetchEmployee() {
+            const id = getEmployeeId();
+            if (!id) {
+                document.getElementById("employeeDetail").innerHTML = 
+                    `<p class="error">No employee ID provided</p>`;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}${id}/`, {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch employee");
+
+                currentEmployee = await response.json();
+                displayEmployee(currentEmployee);
+            } catch (error) {
+                document.getElementById("employeeDetail").innerHTML = 
+                    `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+
+        function displayEmployee(employee, editable = false) {
+            document.getElementById("employeeAvatar").src = employee.avatar || '';
+            document.getElementById("employeeName").textContent = employee.full_name || 'Unnamed';
+
+            const detailHTML = `
+                <div class="detail-item"><i class="fas fa-id-badge"></i><label>ID:</label><span>${employee.id}</span></div>
+                <div class="detail-item"><i class="fas fa-calendar-alt"></i><label>Date of Birth:</label>${
+                    editable ? `<input type="date" value="${employee.date_of_birth || ''}" id="editDateOfBirth" name="date_of_birth" required>` : `<span>${employee.date_of_birth || ''}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-venus-mars"></i><label>Gender:</label>${
+                    editable ? 
+                    `<select id="editGender" name="gender" required>
+                        <option value="true" ${employee.gender ? "selected" : ""}>Nam</option>
+                        <option value="false" ${!employee.gender ? "selected" : ""}>Nữ</option>
+                    </select>` : 
+                    `<span>${employee.gender ? "Nam" : "Nữ"}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-id-card"></i><label>Citizen ID:</label>${
+                    editable ? `<input type="text" value="${employee.citizen_id || ''}" id="editCitizenId" name="citizen_id" maxlength="12" required>` : `<span>${employee.citizen_id || ''}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-phone"></i><label>Phone Number:</label>${
+                    editable ? `<input type="text" value="${employee.phone_number || ''}" id="editPhoneNumber" name="phone_number" maxlength="15" required>` : `<span>${employee.phone_number || ''}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-envelope"></i><label>Email:</label>${
+                    editable ? `<input type="email" value="${employee.email || ''}" id="editEmail" name="email" required>` : `<span>${employee.email || ''}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-map-marker-alt"></i><label>Address:</label>${
+                    editable ? `<input type="text" value="${employee.address || ''}" id="editAddress" name="address" required>` : `<span>${employee.address || ''}</span>`
+                }</div>
+                <div class="detail-item"><i class="fas fa-user-check"></i><label>Status:</label>${
+                    editable ? 
+                    `<select id="editStatus" name="status" required>
+                        <option value="true" ${employee.status ? "selected" : ""}>Đang làm việc</option>
+                        <option value="false" ${!employee.status ? "selected" : ""}>Đã nghỉ việc</option>
+                    </select>` : 
+                    `<span>${employee.status ? "Đang làm việc" : "Đã nghỉ việc"}</span>`
+                }</div>
+            `;
+            document.getElementById("employeeDetail").innerHTML = detailHTML;
+
+            const buttonGroup = document.getElementById("buttonGroup");
+            if (editable) {
+                buttonGroup.innerHTML = `
+                    <button class="save-btn" onclick="saveEmployee()">Save</button>
+                    <button class="delete-btn" onclick="cancelEditing()">Cancel</button>
+                `;
+            } else {
+                buttonGroup.innerHTML = `
+                    <button class="edit-btn" onclick="startEditing()">Edit</button>
+                    <button class="delete-btn" onclick="deleteEmployee()">Delete</button>
+                `;
+            }
+        }
+
+        function startEditing() {
+            isEditing = true;
+            displayEmployee(currentEmployee, true);
+            document.querySelector(".edit-btn").style.transform = "scale(1.1)";
+            setTimeout(() => document.querySelector(".edit-btn").style.transform = "scale(1)", 200);
+        }
+
+        function cancelEditing() {
+            isEditing = false;
+            displayEmployee(currentEmployee, false);
+        }
+
+        async function saveEmployee() {
+            const id = getEmployeeId();
+            const formData = new FormData();
+            formData.append("full_name", document.getElementById("editFullName").value);
+            formData.append("date_of_birth", document.getElementById("editDateOfBirth").value);
+            formData.append("gender", document.getElementById("editGender").value === "true");
+            formData.append("citizen_id", document.getElementById("editCitizenId").value);
+            formData.append("phone_number", document.getElementById("editPhoneNumber").value);
+            formData.append("email", document.getElementById("editEmail").value);
+            formData.append("address", document.getElementById("editAddress").value);
+            formData.append("status", document.getElementById("editStatus").value === "true");
+            const avatarFile = document.getElementById("editAvatar").files[0];
+            if (avatarFile) {
+                formData.append("avatar", avatarFile);
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}${id}/`, {
+                    method: "PUT",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    currentEmployee = await response.json();
+                    isEditing = false;
+                    displayEmployee(currentEmployee, false);
+                    alert("Employee updated successfully!");
+                } else {
+                    const error = await response.json();
+                    alert("Error: " + JSON.stringify(error));
+                }
+            } catch (error) {
+                alert("Request failed: " + error.message);
+            }
+        }
+
+        async function deleteEmployee() {
+            const id = getEmployeeId();
+            if (confirm("Bạn có chắc chắn muốn xóa nhân viên này không?")) {
+                try {
+                    const response = await fetch(`${apiUrl}${id}/`, {
+                        method: "DELETE",
+                    });
+
+                    if (response.ok) {
+                        alert("Employee deleted successfully!");
+                        window.location.href = "employee_list.html";
+                    } else {
+                        throw new Error("Failed to delete employee");
+                    }
+                } catch (error) {
+                    alert("Error: " + error.message);
+                }
+            }
+        }
+
+        window.onload = fetchEmployee;
+    </script>
+</body>
+</html>
