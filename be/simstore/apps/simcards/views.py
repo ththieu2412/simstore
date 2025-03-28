@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from .models import MobileNetworkOperator, Category1, Category2, SIM
 from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimSerializer
 from django.utils.timezone import now
+from rest_framework.decorators import action
 
 class BaseViewSet(viewsets.ModelViewSet):
     """
@@ -83,3 +84,30 @@ class SimViewSet(BaseViewSet):
         
         
         return super().update(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        """
+        Tự động lọc theo query params (nếu có)
+        """
+        queryset = super().get_queryset()
+        
+        # Lọc theo status
+        status = self.request.query_params.get('status')
+        if status is not None:
+            queryset = queryset.filter(status=status)
+        
+        # Lọc theo mobile_network_operator
+        mobile_network_operator = self.request.query_params.get('mobile_network_operator')
+        if mobile_network_operator is not None:
+            queryset = queryset.filter(mobile_network_operator=mobile_network_operator)
+        
+        # Lọc theo khoảng giá
+        min_price = self.request.query_params.get('min_price')
+        if min_price is not None:
+            queryset = queryset.filter(export_price__gte=min_price)
+        
+        max_price = self.request.query_params.get('max_price')
+        if max_price is not None:
+            queryset = queryset.filter(export_price__lte=max_price)
+        
+        return queryset

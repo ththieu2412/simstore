@@ -79,6 +79,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
 
+    @action(detail=False, methods=['get'], url_path='no-account')
+    def get_employees_without_account(self, request):
+        employees_without_account = Employee.objects.filter(account__isnull=True)
+        serializer = self.get_serializer(employees_without_account, many=True)
+        return Response(serializer.data)
+
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer

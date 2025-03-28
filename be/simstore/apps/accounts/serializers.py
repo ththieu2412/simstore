@@ -61,10 +61,13 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source="employee.full_name", read_only=True)
+
     class Meta:
         model = Account
-        fields = ["id", "username", "password", "role", "employee", "is_active"]
+        fields = ["id", "username", "password", "role", "employee", "employee_name", "is_active"]
         extra_kwargs = {"password": {"write_only": True}}
+
 
     def validate_password(self, value):
         """Kiểm tra mật khẩu ít nhất 8 ký tự, chứa chữ hoa, thường, số và ký tự đặc biệt"""
