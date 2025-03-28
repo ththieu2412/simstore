@@ -8,110 +8,153 @@
       body {
         font-family: Arial, sans-serif;
         max-width: 600px;
-        margin: 20px auto;
+        margin: 30px auto;
         padding: 20px;
+        background: #f8f9fa;
       }
+
+      /* Nút Back */
+      .back-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        padding: 8px 12px;
+        border-radius: 5px;
+        background: white;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease-in-out;
+        width: fit-content;
+      }
+
+      .back-btn:hover {
+        background: #e9ecef;
+        color: #4caf50;
+      }
+
+      .back-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+
+      form {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
       label {
         display: block;
-        margin: 10px 0 5px;
+        margin: 12px 0 5px;
+        font-weight: bold;
+        color: #555;
       }
+
       input,
       textarea,
       select {
         width: 100%;
-        padding: 8px;
+        padding: 10px;
         margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
         box-sizing: border-box;
+        transition: all 0.3s ease-in-out;
       }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        outline: none;
+      }
+
       button {
+        width: 100%;
         background-color: #4caf50;
         color: white;
-        padding: 10px 15px;
+        padding: 12px;
         border: none;
+        border-radius: 5px;
         cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background 0.3s ease-in-out, transform 0.2s;
       }
+
       button:hover {
         background-color: #45a049;
+        transform: scale(1.05);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .file-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .file-input input {
+        flex: 1;
       }
     </style>
   </head>
   <body>
+    <!-- Nút quay lại -->
+    <a href="employee_list.html" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Back
+    </a>
+
     <h2>Create Employee</h2>
-    <form
-      id="employeeForm"
-      enctype="multipart/form-data"
-      method="POST"
-      action="http://localhost:8000/api/employees/"
-    >
+    <form id="employeeForm" enctype="multipart/form-data" method="POST">
       <label for="full_name">Full Name:</label>
-      <input
-        type="text"
-        id="full_name"
-        name="full_name"
-        value="Test"
-        required
-      />
+      <input type="text" id="full_name" name="full_name" required />
 
       <label for="date_of_birth">Date of Birth:</label>
-      <input
-        type="date"
-        id="date_of_birth"
-        name="date_of_birth"
-        value="2001-01-09"
-        required
-      />
+      <input type="date" id="date_of_birth" name="date_of_birth" required />
 
       <label for="gender">Gender:</label>
       <select id="gender" name="gender" required>
-        <option value="true" selected>Male</option>
+        <option value="true">Male</option>
         <option value="false">Female</option>
       </select>
 
       <label for="citizen_id">Citizen ID:</label>
-      <input
-        type="text"
-        id="citizen_id"
-        name="citizen_id"
-        value="080206004415"
-        maxlength="12"
-        required
-      />
+      <input type="text" id="citizen_id" name="citizen_id" maxlength="12" required />
 
       <label for="phone_number">Phone Number:</label>
-      <input
-        type="text"
-        id="phone_number"
-        name="phone_number"
-        value="0764352164"
-        maxlength="15"
-        required
-      />
+      <input type="text" id="phone_number" name="phone_number" maxlength="15" required />
 
       <label for="email">Email:</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        value="test@gmail.com"
-        required
-      />
+      <input type="email" id="email" name="email" required />
 
       <label for="address">Address:</label>
-      <textarea id="address" name="address" required>
-Man Thien, Thu Duc</textarea
-      >
+      <textarea id="address" name="address" required></textarea>
 
       <label for="avatar">Avatar:</label>
-      <input
-        type="file"
-        id="avatar"
-        name="avatar"
-        accept="image/jpeg,image/png"
-      />
+      <div class="file-input">
+        <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png" />
+      </div>
 
       <label for="status">Status:</label>
       <select id="status" name="status" required>
-        <option value="true" selected>Active</option>
+        <option value="true">Active</option>
         <option value="false">Inactive</option>
       </select>
 
@@ -119,32 +162,27 @@ Man Thien, Thu Duc</textarea
     </form>
 
     <script>
-      document
-        .getElementById("employeeForm")
-        .addEventListener("submit", async function (event) {
-          event.preventDefault(); // Ngăn form submit mặc định
+      document.getElementById("employeeForm").addEventListener("submit", async function (event) {
+        event.preventDefault(); // Ngăn form submit mặc định
 
-          const formData = new FormData(this); // Tạo FormData từ form
+        const formData = new FormData(this); // Tạo FormData từ form
 
-          try {
-            const response = await fetch(
-              "http://localhost:8000/api/accounts/employees/",
-              {
-                method: "POST",
-                body: formData,
-              }
-            );
+        try {
+          const response = await fetch("http://localhost:8000/api/accounts/employees/", {
+            method: "POST",
+            body: formData,
+          });
 
-            const result = await response.json();
-            if (response.ok) {
-              alert("Employee created successfully: " + JSON.stringify(result));
-            } else {
-              alert("Error: " + JSON.stringify(result));
-            }
-          } catch (error) {
-            alert("Request failed: " + error.message);
+          const result = await response.json();
+          if (response.ok) {
+            alert("Employee created successfully!");
+          } else {
+            alert("Error: " + JSON.stringify(result));
           }
-        });
+        } catch (error) {
+          alert("Request failed: " + error.message);
+        }
+      });
     </script>
   </body>
 </html>

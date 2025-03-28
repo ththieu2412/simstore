@@ -125,12 +125,36 @@
             margin-top: 15px;
             font-size: 14px;
         }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+        
+        .back-btn i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        .back-btn:hover {
+            color: #2196f3;
+        }
+        
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="employee_list.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        
         <div class="avatar-container">
-            <img id="employeeAvatar" class="avatar-img" alt="Avatar" onerror="this.src='https://via.placeholder.com/120'" />
+            <img id="employeeAvatar" class="avatar-img" alt="Avatar" onerror="this.src='http://localhost:8000/media/image/avatar_default.png'">
             <h2 id="employeeName"></h2>
         </div>
         <div class="detail-list" id="employeeDetail"></div>

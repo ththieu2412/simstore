@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Account</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 30px auto;
+        padding: 20px;
+        background: #f8f9fa;
+      }
+
+      .back-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        text-decoration: none;
+        color: #333;
+        padding: 8px 12px;
+        border-radius: 5px;
+        background: white;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease-in-out;
+        width: fit-content;
+      }
+
+      .back-btn:hover {
+        background: #e9ecef;
+        color: #4caf50;
+      }
+
+      .back-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+
+      form {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+        transition: all 0.3s ease-in-out;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #4caf50;
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        outline: none;
+      }
+
+      button {
+        width: 100%;
+        background-color: #4caf50;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background 0.3s ease-in-out, transform 0.2s;
+      }
+
+      button:hover {
+        background-color: #45a049;
+        transform: scale(1.05);
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Nút quay lại -->
+    <a href="account_list.html" class="back-btn">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Back
+    </a>
+
+    <h2>Create Account</h2>
+    <form id="accountForm">
+      <label for="employee">Chọn Nhân Viên:</label>
+      <select id="employee" name="employee" required>
+        <option value="">-- Chọn nhân viên --</option>
+      </select>
+
+      <label for="username">Tên đăng nhập:</label>
+      <input type="text" id="username" name="username" required />
+
+      <label for="password">Mật khẩu:</label>
+      <input type="password" id="password" name="password" required />
+
+      <label for="role">Vai trò:</label>
+      <select id="role" name="role" required>
+        <option value="1">Admin</option>
+        <option value="2">Nhân viên</option>
+      </select>
+
+      <label for="status">Trạng thái:</label>
+      <select id="status" name="status" required>
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+
+      <button type="submit">Tạo tài khoản</button>
+    </form>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetchEmployeesWithoutAccount();
+
+        document
+          .getElementById("accountForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+            createAccount();
+          });
+      });
+
+      async function fetchEmployeesWithoutAccount() {
+        try {
+          let response = await fetch(
+            "http://localhost:8000/api/accounts/employees/no-account/"
+          );
+          let employees = await response.json();
+          let select = document.getElementById("employee");
+
+          employees.forEach((employee) => {
+            let option = document.createElement("option");
+            option.value = employee.id;
+            option.textContent = employee.full_name;
+            select.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Lỗi khi lấy danh sách nhân viên:", error);
+        }
+      }
+
+      async function createAccount() {
+        let username = document.getElementById("username").value;
+        let password = document.getElementById("password").value;
+        let role = document.getElementById("role").value;
+        let employeeId = document.getElementById("employee").value;
+        let status = document.getElementById("status").value === "true";
+
+        let data = {
+          username: username,
+          password: password,
+          role: role,
+          employee: employeeId,
+          status: status,
+        };
+
+        try {
+          let response = await fetch(
+            "http://localhost:8000/api/accounts/accounts/",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(data),
+            }
+          );
+
+          let result = await response.json();
+          if (response.ok) {
+            alert("Tạo tài khoản thành công!");
+            location.reload();
+          } else {
+            alert("Lỗi: " + JSON.stringify(result));
+          }
+        } catch (error) {
+          console.error("Lỗi khi tạo tài khoản:", error);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Danh sách SIM</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hover Effect */
+        .sim-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Spinner Animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 640px) {
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filters input, .filters select, .filters button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto p-6">
+        <!-- Header -->
+        <h2 class="text-3xl font-bold text-gray-800 text-center mb-6">Danh sách SIM</h2>
+
+        <!-- Filters -->
+        <div class="filters flex flex-wrap justify-center gap-4 mb-8 bg-white p-4 rounded-lg shadow-md">
+            <input type="text" id="search-input" placeholder="Nhập số điện thoại..." class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <select id="network-filter" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Chọn nhà mạng</option>
+            </select>
+            <select id="status-filter" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Chọn trạng thái</option>
+                <option value="0">Hết hàng</option>
+                <option value="1">Có sẵn</option>
+                <option value="2">Đang đăng bán</option>
+            </select>
+            <input type="number" id="min-price" placeholder="Giá thấp nhất" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="number" id="max-price" placeholder="Giá cao nhất" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onclick="fetchSIMs()" class="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">Lọc</button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="flex justify-center hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- SIM List -->
+        <div id="sim-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <script>
+        let networkOperators = []; // Store network operators globally for mapping
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchMobileNetworkOperators();
+            fetchSIMs();
+        });
+
+        function showLoading(show) {
+            document.getElementById("loading").classList.toggle("hidden", !show);
+        }
+
+        function fetchMobileNetworkOperators() {
+            fetch("http://localhost:8000/api/simcards/mobile-network-operator/")
+                .then(response => response.json())
+                .then(data => {
+                    networkOperators = data; // Store the data for later use
+                    let networkFilter = document.getElementById("network-filter");
+                    networkFilter.innerHTML = '<option value="">Chọn nhà mạng</option>';
+                    data.forEach(operator => {
+                        let option = document.createElement("option");
+                        option.value = operator.id;
+                        option.textContent = operator.name;
+                        networkFilter.appendChild(option);
+                    });
+                })
+                .catch(error => console.error("Lỗi khi tải danh sách nhà mạng:", error));
+        }
+
+        function fetchSIMs() {
+            showLoading(true);
+            let searchQuery = document.getElementById("search-input").value.trim();
+            let networkFilter = document.getElementById("network-filter").value;
+            let statusFilter = document.getElementById("status-filter").value;
+            let minPrice = document.getElementById("min-price").value;
+            let maxPrice = document.getElementById("max-price").value;
+
+            let url = new URL("http://localhost:8000/api/simcards/sims/");
+            let params = new URLSearchParams();
+
+            if (searchQuery) params.append("phone_number", searchQuery);
+            if (networkFilter) params.append("mobile_network_operator", networkFilter);
+            if (statusFilter) params.append("status", statusFilter);
+            if (minPrice) params.append("min_price", minPrice);
+            if (maxPrice) params.append("max_price", maxPrice);
+
+            url.search = params.toString();
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    showLoading(false);
+                    let container = document.getElementById("sim-list");
+                    container.innerHTML = ""; // Clear previous content
+                    data.forEach(item => {
+                        let simCard = document.createElement("div");
+                        simCard.className = "sim-card bg-white p-5 rounded-lg shadow-md cursor-pointer";
+                        simCard.innerHTML = `
+                            <div class="text-lg font-bold text-blue-600">${item.phone_number}</div>
+                            <div class="text-sm text-gray-500">${getNetworkOperator(item.mobile_network_operator)}</div>
+                            <div class="mt-2 inline-block px-2 py-1 rounded text-sm font-semibold ${getStatusClass(item.status)}">${getStatusText(item.status)}</div>
+                            <div class="mt-2 text-gray-700">Giá xuất: ${item.export_price ? item.export_price.toLocaleString() + " VND" : "Chưa có giá"}</div>
+                        `;
+                        simCard.onclick = () => {
+                            window.location.href = `sim_detail.html?id=${item.id}`;
+                        };
+                        container.appendChild(simCard);
+                    });
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error("Lỗi khi tải danh sách SIM:", error);
+                    document.getElementById("sim-list").innerHTML = '<p class="text-red-500 text-center">Không thể tải danh sách SIM. Vui lòng thử lại.</p>';
+                });
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case "0": return "Hết hàng";
+                case "1": return "Có sẵn";
+                case "2": return "Đang đăng bán";
+                default: return "Không xác định";
+            }
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case "0": return "bg-yellow-200 text-yellow-800";
+                case "1": return "bg-green-200 text-green-800";
+                case "2": return "bg-red-200 text-red-800";
+                default: return "bg-gray-200 text-gray-800";
+            }
+        }
+
+        function getNetworkOperator(operatorId) {
+            const operator = networkOperators.find(op => op.id === operatorId);
+            return operator ? operator.name : "Không xác định";
+        }
+    </script>
+</body>
+</html>

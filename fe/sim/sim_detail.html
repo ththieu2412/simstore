@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết SIM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #2196f3;
+        }
+        .detail-list {
+            margin-top: 20px;
+        }
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        .detail-item label {
+            font-weight: bold;
+            color: #555;
+        }
+        .button-group {
+            text-align: center;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #e0a800;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        .back-btn {
+            display: inline-block;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .back-btn i {
+            margin-right: 5px;
+        }
+        .back-btn:hover {
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="sim_list.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
+
+        <h2>Thông tin SIM</h2>
+        <div class="detail-list">
+            <div class="detail-item"><label>Số SIM:</label> <span id="phone_number"></span></div>
+            <div class="detail-item"><label>Loại SIM:</label> <span id="sim_type"></span></div>
+            <div class="detail-item"><label>Giá xuất bán:</label> <span id="export_price"></span></div>
+            <div class="detail-item"><label>Trạng thái:</label> <span id="status"></span></div>
+            <div class="detail-item"><label>Nhà mạng:</label> <span id="mobile_operator"></span></div>
+            <div class="detail-item"><label>Danh mục 1:</label> <span id="category_1"></span></div>
+            <div class="detail-item"><label>Danh mục 2:</label> <span id="category_2"></span></div>
+            <div class="detail-item"><label>Nhân viên phụ trách:</label> <span id="employee"></span></div>
+            <div class="detail-item"><label>Ngày tạo:</label> <span id="created_at"></span></div>
+            <div class="detail-item"><label>Ngày cập nhật:</label> <span id="updated_at"></span></div>
+        </div>
+
+        <div class="button-group">
+            <button class="edit-btn">Chỉnh sửa</button>
+            <button class="delete-btn" onclick="deleteSim()">Xóa</button>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = "http://localhost:8000/api/sims/";
+        let simData = {
+            "id": 11,
+            "created_at": "22/02/2025 03:14:00",
+            "updated_at": "25/03/2025 13:00:23",
+            "phone_number": "0945551111",
+            "type": "physical",
+            "export_price": "2200000.00",
+            "status": 1,
+            "mobile_network_operator": 1,
+            "category_1": 2,
+            "category_2": 6,
+            "employee": 2
+        };
+
+        function mapStatus(status) {
+            switch(status) {
+                case 0: return "Chưa bán";
+                case 1: return "Đang đăng bán";
+                case 2: return "Đã bán";
+                default: return "Không xác định";
+            }
+        }
+
+        function mapSimType(type) {
+            return type === "physical" ? "SIM Vật lý" : "eSIM";
+        }
+
+        function mapMobileOperator(operator) {
+            const operators = {
+                1: "Viettel",
+                2: "Mobifone",
+                3: "Vinaphone"
+            };
+            return operators[operator] || "Không xác định";
+        }
+
+        function displaySimData() {
+            document.getElementById("phone_number").textContent = simData.phone_number;
+            document.getElementById("sim_type").textContent = mapSimType(simData.type);
+            document.getElementById("export_price").textContent = `${simData.export_price} VNĐ`;
+            document.getElementById("status").textContent = mapStatus(simData.status);
+            document.getElementById("mobile_operator").textContent = mapMobileOperator(simData.mobile_network_operator);
+            document.getElementById("category_1").textContent = `Danh mục ${simData.category_1}`;
+            document.getElementById("category_2").textContent = `Danh mục ${simData.category_2}`;
+            document.getElementById("employee").textContent = `Nhân viên ${simData.employee}`;
+            document.getElementById("created_at").textContent = simData.created_at;
+            document.getElementById("updated_at").textContent = simData.updated_at;
+        }
+
+        function deleteSim() {
+            if (confirm("Bạn có chắc chắn muốn xóa SIM này không?")) {
+                alert("SIM đã được xóa! (Giả lập)");
+                window.location.href = "sim_list.html";
+            }
+        }
+
+        displaySimData();
+    </script>
+</body>
+</html>
