@@ -32,13 +32,7 @@
                     <label for="supplier" class="block text-sm font-medium text-gray-700">Nhà cung cấp</label>
                     <select id="supplier" class="mt-1 p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required></select>
                 </div>
-                <div>
-                    <label for="employee" class="block text-sm font-medium text-gray-700">Nhân viên</label>
-                    <select id="employee" class="mt-1 p-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        <option value="">Chọn nhân viên</option>
-                        <option value="2">Nhân viên 2</option>
-                    </select>
-                </div>
+                <!-- Đã xóa phần chọn nhân viên -->
             </div>
             <div class="mb-4">
                 <label for="note" class="block text-sm font-medium text-gray-700">Ghi chú</label>
@@ -61,10 +55,10 @@
         let networkOperators = [];
         let categories1 = [];
         let categories2 = [];
+        const currentEmployeeId = 2; // Giả lập mã nhân viên đang đăng nhập
 
         document.getElementById("importForm").addEventListener("submit", submitForm);
 
-        // Tải tất cả dữ liệu API khi khởi động
         window.onload = async () => {
             try {
                 await Promise.all([
@@ -73,8 +67,8 @@
                     fetchCategories1(),
                     fetchCategories2()
                 ]);
-                console.log("Dữ liệu đã tải:", { networkOperators, categories1, categories2 }); // Debug
-                addSimEntry(); // Thêm SIM mặc định sau khi dữ liệu sẵn sàng
+                console.log("Dữ liệu đã tải:", { networkOperators, categories1, categories2 });
+                addSimEntry();
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu ban đầu:", error);
             }
@@ -156,7 +150,6 @@
             const responseMessage = document.getElementById("responseMessage");
 
             const supplier = form.querySelector("#supplier").value;
-            const employee = form.querySelector("#employee").value;
             const note = form.querySelector("#note").value;
             const simEntries = form.querySelectorAll(".sim-entry");
 
@@ -170,7 +163,12 @@
                 import_price: parseInt(entry.querySelector("[name='import_price']").value)
             }));
 
-            const data = { supplier: parseInt(supplier), employee: parseInt(employee), note, sim_list };
+            const data = { 
+                supplier: parseInt(supplier), 
+                employee: currentEmployeeId, // Sử dụng mã nhân viên đang đăng nhập
+                note, 
+                sim_list 
+            };
 
             loading.classList.remove("hidden");
             responseMessage.classList.add("hidden");

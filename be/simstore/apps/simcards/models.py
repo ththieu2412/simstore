@@ -32,11 +32,6 @@ class Category2(models.Model):
         db_table = 'category_2'
 
 class SIM(models.Model):
-    SIM_TYPE_CHOICES = [
-        ('physical', 'Sim vật lý'),
-        ('qr', 'QR Sim'),
-    ]
-
     STATUS_CHOICES = [
         (0, 'Hết hàng'),
         (1, 'Có sẵn'),
@@ -48,15 +43,10 @@ class SIM(models.Model):
         unique=True,
         validators=[RegexValidator(r'^\d{9,15}$', 'Số điện thoại không hợp lệ!')]
     )
+
     mobile_network_operator = models.ForeignKey(MobileNetworkOperator, on_delete=models.CASCADE)
     category_1 = models.ForeignKey(Category1, on_delete=models.CASCADE)
     category_2 = models.ForeignKey(Category2, on_delete=models.CASCADE)
-    type = models.CharField(
-        max_length=10,
-        choices=SIM_TYPE_CHOICES,
-        default='physical'
-    )
-    
     employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
     export_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     status = models.IntegerField(
@@ -64,7 +54,6 @@ class SIM(models.Model):
         default=1  # Mặc định là "Có sẵn"
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):

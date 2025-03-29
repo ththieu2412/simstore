@@ -17,17 +17,12 @@ class Category2Serializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class SimSerializer(serializers.ModelSerializer):
-    created_at = serializers.SerializerMethodField()
     updated_at = serializers.SerializerMethodField()
 
     class Meta:
         model = SIM
         fields = '__all__'
 
-
-    def get_created_at(self, obj):
-            """Chuyển đổi định dạng ngày tháng"""
-            return obj.created_at.strftime("%d/%m/%Y %H:%M:%S") if obj.created_at else None
     
     def get_updated_at(self, obj):
             """Chuyển đổi định dạng ngày tháng"""

@@ -134,10 +134,6 @@
             }
         }
 
-        function mapSimType(type) {
-            return type === "physical" ? "SIM Vật lý" : "eSIM";
-        }
-
         function mapMobileOperator(operator) {
             const operators = {
                 1: "Viettel",
@@ -149,14 +145,12 @@
 
         function displaySimData() {
             document.getElementById("phone_number").textContent = simData.phone_number;
-            document.getElementById("sim_type").textContent = mapSimType(simData.type);
             document.getElementById("export_price").textContent = `${simData.export_price} VNĐ`;
             document.getElementById("status").textContent = mapStatus(simData.status);
             document.getElementById("mobile_operator").textContent = mapMobileOperator(simData.mobile_network_operator);
             document.getElementById("category_1").textContent = `Danh mục ${simData.category_1}`;
             document.getElementById("category_2").textContent = `Danh mục ${simData.category_2}`;
             document.getElementById("employee").textContent = `Nhân viên ${simData.employee}`;
-            document.getElementById("created_at").textContent = simData.created_at;
             document.getElementById("updated_at").textContent = simData.updated_at;
         }
 

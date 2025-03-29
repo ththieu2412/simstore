@@ -27,20 +27,14 @@ class SupplierSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email phải có định dạng xxx@gmail.com.")
         return value
         
-class ImportReceiptDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ImportReceiptDetail
-        fields = ['import_receipt', 'sim', 'import_price']
-
 class SIMSerializer(serializers.ModelSerializer):
     class Meta:
         model = SIM
-        fields = ['phone_number', 'mobile_network_operator', 'category_1', 'category_2', 'employee', 'status', 'type']
+        fields = ['phone_number', 'mobile_network_operator', 'category_1', 'category_2', 'employee', 'status']
 
 class ImportReceiptSIMSerializer(serializers.Serializer):
     sim = SIMSerializer()  # Chứa thông tin SIM
     import_price = serializers.DecimalField(max_digits=10, decimal_places=2)
-
 
 class SupplierMinimalSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,8 +47,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name']
 class ImportReceiptSerializer(serializers.ModelSerializer):
     sim_list = ImportReceiptSIMSerializer(many=True, write_only=True)  # Danh sách SIM và giá nhập
-    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all())
-    employee = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
+    supplier = SupplierMinimalSerializer()
+    employee = EmployeeSerializer()
     class Meta:
         model = ImportReceipt
         fields = ['id', 'created_at', 'note', 'supplier', 'employee', 'sim_list']

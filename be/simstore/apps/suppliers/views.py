@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Supplier, ImportReceipt
 from .serializers import SupplierSerializer, ImportReceiptSerializer
-from django.shortcuts import get_object_or_404
 from utils import api_response
 
 class SupplierViewSet(viewsets.ModelViewSet):

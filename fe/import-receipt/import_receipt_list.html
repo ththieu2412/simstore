@@ -70,40 +70,13 @@
         </button>
 
         <!-- Button tạo import mới -->
-<button
-onclick="openImportModal()"
-class="px-4 py-2 bg-green-500 text-white rounded mb-4"
->
-+ Tạo Import Mới
-</button>
+        <button
+        onclick="window.location.href='import_receipt_add.html'"
+        class="px-4 py-2 bg-green-500 text-white rounded mb-4"
+      >
+        + Tạo Import Mới
+      </button>
 
-<!-- Modal nhập Import -->
-<div id="importModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
-<div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
-  <h2 class="text-xl font-bold mb-4">Tạo Import Mới</h2>
-  
-  <label class="block font-semibold">Nhà cung cấp:</label>
-  <input id="supplier" type="number" class="w-full p-2 border rounded mb-2" placeholder="Nhập ID nhà cung cấp">
-
-  <label class="block font-semibold">Nhân viên nhập:</label>
-  <input id="employee" type="number" class="w-full p-2 border rounded mb-2" placeholder="Nhập ID nhân viên">
-
-  <label class="block font-semibold">Ghi chú:</label>
-  <input id="note" type="text" class="w-full p-2 border rounded mb-2" placeholder="Nhập ghi chú">
-
-  <label class="block font-semibold">Danh sách SIM:</label>
-  <div id="simListContainer" class="mb-2"></div>
-  <button onclick="addSimInput()" class="px-3 py-1 bg-blue-500 text-white rounded mb-2">
-    + Thêm SIM
-  </button>
-
-  <div class="flex justify-end space-x-2">
-    <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-400 text-white rounded">Hủy</button>
-    <button onclick="createImport()" class="px-4 py-2 bg-green-500 text-white rounded">Tạo Import</button>
-  </div>
-</div>
-</div>
-      </div>
 
       <!-- Sorting Options -->
       <div class="mb-4">
