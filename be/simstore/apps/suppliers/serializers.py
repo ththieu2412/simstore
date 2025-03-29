@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Supplier, ImportReceipt, SIM, ImportReceiptDetail
+from .models import Supplier, ImportReceipt, SIM, ImportReceiptDetail, Employee
 import re
 
 class SupplierSerializer(serializers.ModelSerializer):
@@ -41,9 +41,20 @@ class ImportReceiptSIMSerializer(serializers.Serializer):
     sim = SIMSerializer()  # Chứa thông tin SIM
     import_price = serializers.DecimalField(max_digits=10, decimal_places=2)
 
+
+class SupplierMinimalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name']
+
+class EmployeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = ['id', 'full_name']
 class ImportReceiptSerializer(serializers.ModelSerializer):
     sim_list = ImportReceiptSIMSerializer(many=True, write_only=True)  # Danh sách SIM và giá nhập
-
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all())
+    employee = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
     class Meta:
         model = ImportReceipt
         fields = ['id', 'created_at', 'note', 'supplier', 'employee', 'sim_list']
@@ -70,10 +81,10 @@ class ImportReceiptSerializer(serializers.ModelSerializer):
         import_receipt = ImportReceipt.objects.create(**validated_data)  # Tạo phiếu nhập
 
         for sim_data in sim_data_list:
-            sim_info = sim_data['sim']  # Lấy thông tin SIM
-            import_price = sim_data['import_price']  # Lấy giá nhập
+            sim_info = sim_data['sim']  
+            import_price = sim_data['import_price']  
 
-            sim = SIM.objects.create(**sim_info)  # Tạo SIM mới
+            sim = SIM.objects.create(**sim_info) 
             ImportReceiptDetail.objects.create(
                 import_receipt=import_receipt,
                 sim=sim,

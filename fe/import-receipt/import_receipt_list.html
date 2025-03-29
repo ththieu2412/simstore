@@ -1,145 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Import Receipts Dashboard</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Animation for Fade-In */
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
+      /* Animation */
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
         }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-        tr {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
+      tr {
+        animation: fadeIn 0.5s ease-out forwards;
+      }
 
-        /* Hover Animation */
-        tr:hover {
-            background-color: #f9fafb;
-            transition: background-color 0.3s ease;
-        }
+      tr:hover {
+        background-color: #f9fafb;
+        transition: background-color 0.3s ease;
+      }
 
-        /* Responsive Table Adjustments */
-        @media (max-width: 640px) {
-            .table-container {
-                overflow-x: auto;
-            }
-        }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
 
-        /* Spinner Animation */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+        100% {
+          transform: rotate(360deg);
         }
+      }
     </style>
-</head>
-<body class="bg-gray-100 font-sans">
+  </head>
+  <body class="bg-gray-100 font-sans">
     <div class="container mx-auto p-6">
-        <!-- Header -->
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Import Receipts</h1>
+      <!-- Header -->
+      <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">
+        Import Receipts
+      </h1>
 
-        <!-- Loading State -->
-        <div id="loading" class="flex justify-center">
-            <div class="spinner"></div>
+      <!-- Search and Filters -->
+      <div class="mb-4 flex space-x-4">
+        <input
+          type="text"
+          id="searchInput"
+          class="p-2 border rounded w-1/3"
+          placeholder="Search by ID, Supplier, Employee"
+        />
+        <button
+          onclick="fetchReceipts()"
+          class="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Search
+        </button>
+
+        <!-- Button tạo import mới -->
+<button
+onclick="openImportModal()"
+class="px-4 py-2 bg-green-500 text-white rounded mb-4"
+>
++ Tạo Import Mới
+</button>
+
+<!-- Modal nhập Import -->
+<div id="importModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center hidden">
+<div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
+  <h2 class="text-xl font-bold mb-4">Tạo Import Mới</h2>
+  
+  <label class="block font-semibold">Nhà cung cấp:</label>
+  <input id="supplier" type="number" class="w-full p-2 border rounded mb-2" placeholder="Nhập ID nhà cung cấp">
+
+  <label class="block font-semibold">Nhân viên nhập:</label>
+  <input id="employee" type="number" class="w-full p-2 border rounded mb-2" placeholder="Nhập ID nhân viên">
+
+  <label class="block font-semibold">Ghi chú:</label>
+  <input id="note" type="text" class="w-full p-2 border rounded mb-2" placeholder="Nhập ghi chú">
+
+  <label class="block font-semibold">Danh sách SIM:</label>
+  <div id="simListContainer" class="mb-2"></div>
+  <button onclick="addSimInput()" class="px-3 py-1 bg-blue-500 text-white rounded mb-2">
+    + Thêm SIM
+  </button>
+
+  <div class="flex justify-end space-x-2">
+    <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-400 text-white rounded">Hủy</button>
+    <button onclick="createImport()" class="px-4 py-2 bg-green-500 text-white rounded">Tạo Import</button>
+  </div>
+</div>
+</div>
+      </div>
+
+      <!-- Sorting Options -->
+      <div class="mb-4">
+        <label for="sortBy" class="mr-2 font-semibold">Sort by:</label>
+        <select id="sortBy" class="p-2 border rounded" onchange="sortTable()">
+          <option value="id">ID</option>
+          <option value="created_at">Date Created</option>
+          <option value="supplier">Supplier</option>
+        </select>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div id="loading" class="flex justify-center">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="error" class="hidden text-red-600 text-center mb-4"></div>
+
+      <!-- Table -->
+      <div id="tableContainer" class="bg-white shadow-lg rounded-lg p-6 hidden">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-200 text-gray-600">
+              <th class="p-3 border-b">ID</th>
+              <th class="p-3 border-b">Created At</th>
+              <th class="p-3 border-b">Note</th>
+              <th class="p-3 border-b">Supplier</th>
+              <th class="p-3 border-b">Created_by</th>
+              <th class="p-3 border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="receiptsTable"></tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="flex justify-center mt-4">
+          <button
+            id="prevPage"
+            class="px-4 py-2 bg-gray-400 text-white rounded mx-1"
+            onclick="changePage(-1)"
+          >
+            Prev
+          </button>
+          <span id="pageIndicator" class="px-4 py-2">Page 1</span>
+          <button
+            id="nextPage"
+            class="px-4 py-2 bg-gray-400 text-white rounded mx-1"
+            onclick="changePage(1)"
+          >
+            Next
+          </button>
         </div>
-
-        <!-- Error Message -->
-        <div id="error" class="hidden text-red-600 text-center mb-4"></div>
-
-        <!-- Table for Detailed View -->
-        <div id="tableContainer" class="table-container bg-white shadow-lg rounded-lg p-6 hidden">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Detailed Receipts</h2>
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-200 text-gray-600">
-                        <th class="p-3 border-b">ID</th>
-                        <th class="p-3 border-b">Created At</th>
-                        <th class="p-3 border-b">Note</th>
-                        <th class="p-3 border-b">Supplier ID</th>
-                        <th class="p-3 border-b">Employee ID</th>
-                    </tr>
-                </thead>
-                <tbody id="receiptsTable"></tbody>
-            </table>
-        </div>
+      </div>
     </div>
 
     <script>
-        // Function to format date
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
+      let receipts = [];
+      let currentPage = 1;
+      const pageSize = 10;
+
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function populateTable() {
+        const tableBody = document.getElementById("receiptsTable");
+        tableBody.innerHTML = "";
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedData = receipts.slice(start, end);
+
+        paginatedData.forEach((receipt, index) => {
+          const row = document.createElement("tr");
+          row.className = "border-b";
+          row.style.animationDelay = `${index * 0.2}s`;
+          row.innerHTML = `
+            <td class="p-3">${receipt.id}</td>
+            <td class="p-3">${formatDate(receipt.created_at)}</td>
+            <td class="p-3">${receipt.note}</td>
+            <td class="p-3">${receipt.supplier?.name}</td>
+            <td class="p-3">${receipt.employee?.full_name}</td>
+            <td class="p-3">
+              <button class="px-2 py-1 bg-green-500 text-white rounded">View</button>
+              <button class="px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+              <button class="px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        document.getElementById("tableContainer").classList.remove("hidden");
+        document.getElementById("pageIndicator").textContent = `Page ${currentPage}`;
+      }
+
+      async function fetchReceipts() {
+        document.getElementById("loading").classList.remove("hidden");
+        document.getElementById("error").classList.add("hidden");
+
+        try {
+          const response = await fetch("http://localhost:8000/api/suppliers/import-receipts/");
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          receipts = await response.json();
+          document.getElementById("loading").classList.add("hidden");
+          populateTable();
+        } catch (error) {
+          document.getElementById("loading").classList.add("hidden");
+          document.getElementById("error").classList.remove("hidden");
+          document.getElementById("error").textContent = `Error: ${error.message}`;
         }
+      }
 
-        // Function to populate table
-        function populateTable(receipts) {
-            const tableBody = document.getElementById('receiptsTable');
-            tableBody.innerHTML = ''; // Clear previous content
-            receipts.forEach((receipt, index) => {
-                const row = document.createElement('tr');
-                row.className = 'border-b';
-                row.style.animationDelay = `${index * 0.2}s`;
-                row.innerHTML = `
-                    <td class="p-3">${receipt.id}</td>
-                    <td class="p-3">${formatDate(receipt.created_at)}</td>
-                    <td class="p-3">${receipt.note}</td>
-                    <td class="p-3">${receipt.supplier}</td>
-                    <td class="p-3">${receipt.employee}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-            document.getElementById('tableContainer').classList.remove('hidden');
-        }
+      function changePage(offset) {
+        currentPage += offset;
+        populateTable();
+      }
 
-        // Fetch data from API
-        async function fetchReceipts() {
-            const loading = document.getElementById('loading');
-            const errorDiv = document.getElementById('error');
+      function sortTable() {
+        const criteria = document.getElementById("sortBy").value;
+        receipts.sort((a, b) => (a[criteria] > b[criteria] ? 1 : -1));
+        populateTable();
+      }
 
-            try {
-                const response = await fetch('http://localhost:8000/api/suppliers/import-receipts/');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                const data = await response.json();
+      // Mở modal nhập Import
+function openImportModal() {
+  document.getElementById("importModal").classList.remove("hidden");
+}
 
-                // Hide loading spinner
-                loading.classList.add('hidden');
+// Đóng modal nhập Import
+function closeImportModal() {
+  document.getElementById("importModal").classList.add("hidden");
+}
 
-                // Populate table with data
-                populateTable(data);
-            } catch (error) {
-                // Hide loading spinner and show error
-                loading.classList.add('hidden');
-                errorDiv.classList.remove('hidden');
-                errorDiv.textContent = `Error fetching data: ${error.message}. Please ensure the API is running at http://localhost:8000.`;
-                console.error('Fetch error:', error);
-            }
-        }
+// Thêm input cho SIM mới
+function addSimInput() {
+  const container = document.getElementById("simListContainer");
+  const index = container.children.length; // Xác định index để phân biệt các SIM
 
-        // Call fetch function on page load
-        window.onload = fetchReceipts;
+  const simHTML = `
+    <div class="border p-2 mb-2">
+      <label class="block">Số điện thoại:</label>
+      <input id="phone_${index}" type="text" class="w-full p-2 border rounded mb-2" placeholder="SĐT">
+
+      <label class="block">Nhà mạng:</label>
+      <input id="network_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="ID Nhà mạng">
+
+      <label class="block">Danh mục 1:</label>
+      <input id="category1_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Danh mục 1">
+
+      <label class="block">Danh mục 2:</label>
+      <input id="category2_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Danh mục 2">
+
+      <label class="block">Nhân viên nhập:</label>
+      <input id="sim_employee_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="ID Nhân viên">
+
+      <label class="block">Giá nhập:</label>
+      <input id="import_price_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Giá nhập">
+
+      <label class="block">Loại:</label>
+      <select id="type_${index}" class="w-full p-2 border rounded mb-2">
+        <option value="qr">QR</option>
+        <option value="normal">Normal</option>
+      </select>
+      
+      <label class="block">Trạng thái:</label>
+      <select id="status_${index}" class="w-full p-2 border rounded mb-2">
+        <option value="true">Hoạt động</option>
+        <option value="false">Không hoạt động</option>
+      </select>
+    </div>
+  `;
+  container.innerHTML += simHTML;
+}
+
+// Gửi request tạo Import
+async function createImport() {
+  const supplier = document.getElementById("supplier").value;
+  const employee = document.getElementById("employee").value;
+  const note = document.getElementById("note").value;
+  const simListContainer = document.getElementById("simListContainer");
+
+  // Lấy danh sách SIM nhập
+  const simList = [];
+  for (let i = 0; i < simListContainer.children.length; i++) {
+    simList.push({
+      sim: {
+        phone_number: document.getElementById(`phone_${i}`).value,
+        mobile_network_operator: parseInt(document.getElementById(`network_${i}`).value),
+        category_1: parseInt(document.getElementById(`category1_${i}`).value),
+        category_2: parseInt(document.getElementById(`category2_${i}`).value),
+        employee: parseInt(document.getElementById(`sim_employee_${i}`).value),
+        status: document.getElementById(`status_${i}`).value === "true",
+        type: document.getElementById(`type_${i}`).value,
+      },
+      import_price: parseInt(document.getElementById(`import_price_${i}`).value),
+    });
+  }
+
+  // Dữ liệu gửi API
+  const requestData = {
+    supplier: parseInt(supplier),
+    employee: parseInt(employee),
+    note: note,
+    sim_list: simList,
+  };
+
+  try {
+    const response = await fetch("http://localhost:8000/api/suppliers/import-receipts/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestData),
+    });
+
+    if (!response.ok) throw new Error(`Lỗi HTTP: ${response.status}`);
+
+    alert("Import mới đã được tạo thành công!");
+    closeImportModal();
+    fetchReceipts(); // Refresh danh sách import sau khi tạo thành công
+  } catch (error) {
+    alert(`Lỗi khi tạo import: ${error.message}`);
+  }
+}
+
+
+      window.onload = fetchReceipts;
     </script>
-</body>
+  </body>
 </html>

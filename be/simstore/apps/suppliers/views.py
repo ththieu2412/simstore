@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from .models import Supplier, ImportReceipt
 from .serializers import SupplierSerializer, ImportReceiptSerializer
 from django.shortcuts import get_object_or_404
+from utils import api_response
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -65,18 +66,8 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.perform_create(serializer)
-            return Response({
-                "statuscode": status.HTTP_201_CREATED,
-                "data": serializer.data,
-                "status": "success",
-                "errorMessage": None
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            "statuscode": status.HTTP_400_BAD_REQUEST,
-            "data": None,
-            "status": "error",
-            "errorMessage": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(status.HTTP_201_CREATED, data=serializer.data)
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
     def update(self, request, *args, **kwargs):
 
@@ -86,18 +77,8 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             self.perform_update(serializer)
-            return Response({
-                "statuscode": status.HTTP_200_OK,
-                "data": serializer.data,
-                "status": "success",
-                "errorMessage": None
-            }, status=status.HTTP_200_OK)
-        return Response({
-            "statuscode": status.HTTP_400_BAD_REQUEST,
-            "data": None,
-            "status": "error",
-            "errorMessage": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(status.HTTP_200_OK, data=serializer.data)
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
     
     # def destroy(self, request, pk=None):
     #     """Xóa Order cùng các dữ liệu liên quan (Payment, Customer, SIM)"""
@@ -137,3 +118,4 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
     #                 status_text="error",
     #                 error_message=f"Lỗi trong quá trình xóa dữ liệu: {str(e)}"
     #             )
+
