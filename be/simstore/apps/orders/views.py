@@ -42,6 +42,62 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors="Lỗi không xác định")
 
+    def list(self, request, *args, **kwargs):
+        """
+        Override list method to handle filtering of orders.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Return the filtered orders
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return api_response(status.HTTP_200_OK, data=serializer.data)
+    
+    def filter_queryset(self, queryset):
+        """
+        Apply filtering logic to the queryset based on URL parameters.
+        """
+        status_order = self.request.query_params.get("status_order", None)
+        customer = self.request.query_params.get("customer", None)
+        discount = self.request.query_params.get("discount", None)
+        ward = self.request.query_params.get("ward", None)
+        sim = self.request.query_params.get("sim", None)
+        start_date = self.request.query_params.get("start_date", None)
+        end_date = self.request.query_params.get("end_date", None)
+
+        # Filter by status_order
+        if status_order:
+            queryset = queryset.filter(status_order=status_order)
+
+        # Filter by customer
+        if customer:
+            queryset = queryset.filter(customer__id=customer)
+
+        # Filter by discount
+        if discount:
+            queryset = queryset.filter(discount__id=discount)
+
+        # Filter by ward
+        if ward:
+            queryset = queryset.filter(ward=ward)
+
+        # Filter by sim
+        if sim:
+            queryset = queryset.filter(sim__id=sim)
+
+        # Filter by start and end date
+        if start_date:
+            queryset = queryset.filter(created_at__gte=start_date)
+
+        if end_date:
+            queryset = queryset.filter(created_at__lte=end_date)
+
+        return queryset
+    
     def _get_or_create_customer(self, customer_data):
         if not customer_data:
             raise ValueError("Thiếu thông tin khách hàng")

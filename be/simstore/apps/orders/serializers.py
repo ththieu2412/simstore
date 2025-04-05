@@ -27,6 +27,8 @@ class OrderSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["status_order"] = instance.get_status_order_display()
+        data["sim"] = instance.sim.phone_number if instance.sim else None
+        data["customer"] = instance.customer.full_name if instance.customer else None
         return data
 
 class PaymentSerializer(serializers.ModelSerializer):

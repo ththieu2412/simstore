@@ -51,7 +51,7 @@ class SIM(models.Model):
     export_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     status = models.IntegerField(
         choices=STATUS_CHOICES,
-        default=1  # Mặc định là "Có sẵn"
+        default=1  
     )
 
     updated_at = models.DateTimeField(auto_now=True, null=True)
