@@ -15,5 +15,6 @@ def custom_exception_handler(exc, context):
                 "status": "error",
                 "errorMessage": "Tài khoản đã bị vô hiệu hóa!"
             }, status=status.HTTP_403_FORBIDDEN)
+            
 
     return response

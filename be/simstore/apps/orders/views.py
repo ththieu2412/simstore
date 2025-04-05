@@ -25,7 +25,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 customer = self._get_or_create_customer(data.get("customer"))
 
-                discount_instance = self._validate_discount(data.get("discount"))
+                discount_instance = self._validate_discount(data.get("discount_code"))
+
 
                 sim_instance = self._validate_sim(data.get("sim"))
 
@@ -61,40 +62,28 @@ class OrderViewSet(viewsets.ModelViewSet):
         """
         Apply filtering logic to the queryset based on URL parameters.
         """
-        status_order = self.request.query_params.get("status_order", None)
-        customer = self.request.query_params.get("customer", None)
-        discount = self.request.query_params.get("discount", None)
-        ward = self.request.query_params.get("ward", None)
-        sim = self.request.query_params.get("sim", None)
-        start_date = self.request.query_params.get("start_date", None)
-        end_date = self.request.query_params.get("end_date", None)
+        filters = {
+            "status_order": self.request.query_params.get("status_order"),
+            "customer__id": self.request.query_params.get("customer"),
+            "discount__id": self.request.query_params.get("discount"),
+            "ward": self.request.query_params.get("ward"),
+            "sim__id": self.request.query_params.get("sim"),
+        }
+        start_date = self.request.query_params.get("start_date")
+        end_date = self.request.query_params.get("end_date")
 
-        # Filter by status_order
-        if status_order:
-            queryset = queryset.filter(status_order=status_order)
+        queryset = queryset.filter(**{k: v for k, v in filters.items() if v is not None})
 
-        # Filter by customer
-        if customer:
-            queryset = queryset.filter(customer__id=customer)
-
-        # Filter by discount
-        if discount:
-            queryset = queryset.filter(discount__id=discount)
-
-        # Filter by ward
-        if ward:
-            queryset = queryset.filter(ward=ward)
-
-        # Filter by sim
-        if sim:
-            queryset = queryset.filter(sim__id=sim)
-
-        # Filter by start and end date
         if start_date:
-            queryset = queryset.filter(created_at__gte=start_date)
-
+            try:
+                queryset = queryset.filter(created_at__gte=start_date)
+            except ValueError:
+                raise ValueError("Ngày bắt đầu không hợp lệ. Định dạng phải là YYYY-MM-DD.")
         if end_date:
-            queryset = queryset.filter(created_at__lte=end_date)
+            try:
+                queryset = queryset.filter(created_at__lte=end_date)
+            except ValueError:
+                raise ValueError("Ngày kết thúc không hợp lệ. Định dạng phải là YYYY-MM-DD.")
 
         return queryset
     
@@ -105,14 +94,23 @@ class OrderViewSet(viewsets.ModelViewSet):
         customer_serializer = CustomerSerializer(data=customer_data)
         if customer_serializer.is_valid():
             return customer_serializer.save()
-        raise ValueError(customer_serializer.errors)
 
-    def _validate_discount(self, discount_id):
-        if not discount_id:
+        # Trả về lỗi đúng format nếu có lỗi validation
+        raise ValueError(self._format_errors(customer_serializer.errors))
+
+    # Helper function to format errors properly
+    def _format_errors(self, errors):
+        formatted_errors = []
+        for field, error in errors.items():
+            formatted_errors.append(f"{field}: {', '.join(error)}")
+        return " ".join(formatted_errors)
+
+    def _validate_discount(self, discount_code):
+        if not discount_code:
             return None
 
         try:
-            discount = Discount.objects.select_for_update().get(id=discount_id)
+            discount = Discount.objects.select_for_update().get(discount_code=discount_code)
             if discount.status == 1:
                 raise ValueError("Mã giảm giá đã được sử dụng")
             if discount.end_date < now():
@@ -127,10 +125,15 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not sim_id:
             raise ValueError("Thiếu thông tin SIM")
 
-        sim = SIM.objects.select_for_update().get(id=sim_id)
-        if sim.status in [0, 1]:
-            raise ValueError("SIM không hợp lệ")
-        return sim
+        try:
+            sim = SIM.objects.select_for_update().get(id=sim_id)
+            if sim.status == 0: 
+                raise ValueError("SIM đã được bán")
+            elif sim.status == 1:  
+                raise ValueError("SIM chưa được đăng bán và không thể sử dụng")
+            return sim
+        except SIM.DoesNotExist:
+            raise ValueError("SIM không tồn tại")
 
     def _create_order(self, data, customer, discount_instance):
         order_data = {
@@ -165,7 +168,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         )
 
     def update(self, request, pk=None, *args, **kwargs):
-        """Cập nhật đơn hàng"""
+        """Cập nhật đơn hàng và trả về toàn bộ kết quả đã cập nhật"""
         order = get_object_or_404(Order, pk=pk)
         data = request.data.copy()
 
@@ -179,19 +182,23 @@ class OrderViewSet(viewsets.ModelViewSet):
             try:
                 self._update_order_status(order, data)
 
+                # Cập nhật các trường khác
                 fields_to_update = ["detailed_address", "ward", "note", "discount"]
                 for field in fields_to_update:
                     if field in data:
                         setattr(order, field, data[field])
-                # Tính lại total_price nếu có thay đổi giảm giá
+
+                # Tính lại total_price nếu có thay đổi giảm giá hoặc SIM
                 if "discount" in data or "sim" in data:
                     order.total_price = order.calculate_total_price()
 
                 order.save()
 
+                # Trả về toàn bộ dữ liệu đã cập nhật
+                serializer = self.get_serializer(order)
                 return api_response(
                     status.HTTP_200_OK,
-                    data={"order_id": order.id, "new_status": order.status_order},
+                    data=serializer.data,
                 )
 
             except Exception as e:
@@ -201,12 +208,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
 
     def _update_order_status(self, order, data):
+        if not employee_id:
+                raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
+        
         new_status = data.get("status_order", None)
         if new_status is not None and new_status != order.status_order:
             employee_id = data.get("employee_id")
-            if not employee_id:
-                raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
-
+            
             employee = get_object_or_404(Employee, pk=employee_id)
             DetailUpdateOrder.objects.create(
                 order=order,

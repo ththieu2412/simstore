@@ -1,3 +1,4 @@
+import re
 from django.utils import timezone
 from rest_framework import serializers
 from .models import Order, Customer, Payment, Discount
@@ -9,6 +10,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = "__all__"
+        read_only_fields = ["created_at"]
 
 class OrderSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
@@ -20,15 +22,31 @@ class OrderSerializer(serializers.ModelSerializer):
             "%Y-%m-%dT%H:%M:%S%z",
         ],
     )
+
+    address = serializers.SerializerMethodField()
+
     class Meta:
         model = Order
         fields = "__all__"
+        read_only_fields = ["address"]
+
+    def get_address(self, obj):
+        """
+        Trả về địa chỉ đầy đủ của khách hàng.
+        """
+        if obj.ward:
+            return f"{obj.detailed_address}, {obj.ward.name}, {obj.ward.district.name}, {obj.ward.district.province.name}"
+        return None
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["status_order"] = instance.get_status_order_display()
         data["sim"] = instance.sim.phone_number if instance.sim else None
         data["customer"] = instance.customer.full_name if instance.customer else None
+
+        data.pop("ward", None)
+        data.pop("detailed_address", None)
+        
         return data
 
 class PaymentSerializer(serializers.ModelSerializer):

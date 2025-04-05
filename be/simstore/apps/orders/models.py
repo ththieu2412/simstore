@@ -16,7 +16,6 @@ class Customer(models.Model):
     class Meta:
         db_table = 'customer'
 
-
 class Discount(models.Model):
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
     start_date = models.DateTimeField()
@@ -105,7 +104,6 @@ class DetailUpdateOrder(models.Model):
     class Meta:
         db_table = 'detail_update_order'
         ordering = ['-updated_at']
-
 
 class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
