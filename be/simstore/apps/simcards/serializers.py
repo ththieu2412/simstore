@@ -16,8 +16,13 @@ class Category2Serializer(serializers.ModelSerializer):
         model = Category2
         fields = '__all__'
 
+class MobileNetworkOperatorMinimalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MobileNetworkOperator
+        fields = ['id', 'name']
 class SimSerializer(serializers.ModelSerializer):
     updated_at = serializers.SerializerMethodField()
+    mobile_network_operator = MobileNetworkOperatorMinimalSerializer()
 
     class Meta:
         model = SIM

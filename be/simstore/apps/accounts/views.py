@@ -191,10 +191,10 @@ class LogoutView(APIView):
                 return api_response(status.HTTP_400_BAD_REQUEST, errors="Refresh token is required")
 
             token = RefreshToken(refresh_token)
-            token.blacklist()  # Chặn refresh token này (Chỉ hoạt động nếu bật Blacklist)
+            token.blacklist()  
             return api_response(status.HTTP_200_OK, data="Đăng xuất thành công")
         except Exception as e:
-            return api_response(status.HTTP_400_BAD_REQUEST, errors="Invalid token")
+            return api_response(status.HTTP_400_BAD_REQUEST, errors="Token không hợp lệ hoặc đã hết hạn")
         
 User = get_user_model()
 
@@ -212,26 +212,33 @@ class PasswordResetConfirmView(APIView):
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
             user = get_object_or_404(User, pk=uid)
+        except Exception as e:
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                message="Không thể giải mã UID hoặc tìm thấy người dùng.",
+                errors=str(e),
+            )
 
-            if default_token_generator.check_token(user, token):
-                new_password = request.data.get('new_password')
-                if not new_password:
-                    return api_response(
-                        status.HTTP_400_BAD_REQUEST,
-                        errors="Mật khẩu mới là bắt buộc.",
-                    )
-
-                user.set_password(new_password)
-                user.save()
-                return api_response(status.HTTP_200_OK)
+        if not default_token_generator.check_token(user, token):
             return api_response(
                 status.HTTP_400_BAD_REQUEST,
                 message="Token không hợp lệ hoặc đã hết hạn.",
             )
 
-        except Exception as e:
+        new_password = request.data.get('new_password', None)
+        if not new_password:
             return api_response(
                 status.HTTP_400_BAD_REQUEST,
-                message="Đã xảy ra lỗi.",
+                errors="Mật khẩu mới là bắt buộc.",
+            )
+        
+        try:
+            user.set_password(new_password)
+            user.save()
+            return api_response(status.HTTP_200_OK, message="Đặt lại mật khẩu thành công.")
+        except Exception as e:
+            return api_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Đã xảy ra lỗi khi đặt lại mật khẩu.",
                 errors=str(e),
             )

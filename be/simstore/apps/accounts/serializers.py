@@ -37,7 +37,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def validate_date_of_birth(self, value):
         """Kiểm tra ngày sinh hợp lệ (không tương lai, ít nhất 15 tuổi)"""
         today = timezone.now().date()
-        min_birth_date = today - timedelta(days=15 * 365)  # Trừ 15 năm
+        min_birth_date = today - timedelta(days=15 * 365)  
 
         if value > today:
             raise serializers.ValidationError("Ngày sinh không hợp lệ.")
@@ -51,9 +51,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
         if value:
             if not value.name.endswith(("jpg", "jpeg", "png")):
                 raise serializers.ValidationError(
-                    "Avatar must be a jpg, jpeg, or png image."
+                    "Ảnh không hợp lệ."
                 )
-            if value.size > 5 * 1024 * 1024:  # 5MB limit
+            if value.size > 5 * 1024 * 1024:  
                 raise serializers.ValidationError(
                     "Avatar file size must be less than 5MB."
                 )
@@ -105,9 +105,8 @@ class RoleSerializer(serializers.ModelSerializer):
 
     def validate_role_name(self, value):
         """Chuẩn hóa role_name về dạng viết thường và kiểm tra trùng"""
-        normalized_name = value.strip().lower()  # Xóa khoảng trắng và chuyển về lowercase
+        normalized_name = value.strip().lower()  
 
-        # Kiểm tra xem có role nào đã tồn tại với tên tương tự không
         if Role.objects.filter(role_name__iexact=normalized_name).exists():
             raise serializers.ValidationError("Role name already exists.")
 
@@ -136,7 +135,6 @@ class LoginSerializer(serializers.Serializer):
 
 User = get_user_model()
 
-
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
@@ -157,7 +155,6 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         employee = Employee.objects.get(email=email)
         user = Account.objects.get(employee=employee)
 
-        # Tạo token và UID cho đặt lại mật khẩu
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_url = request.build_absolute_uri(
