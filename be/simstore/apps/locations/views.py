@@ -30,6 +30,17 @@ class CustomViewSet(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return api_response(status.HTTP_204_NO_CONTENT)
 
+    def get_filtered_queryset(self, filter_field, filter_value):
+        """
+        Tiện ích để lọc queryset theo trường cụ thể.
+        """
+        if not filter_value:
+            return None, api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors=f"{filter_field} là bắt buộc",
+            )
+        return self.queryset.filter(**{filter_field: filter_value}), None
+
 
 class ProvinceViewSet(CustomViewSet):
     queryset = Province.objects.all()
@@ -43,14 +54,13 @@ class DistrictViewSet(CustomViewSet):
     def list(self, request, *args, **kwargs):
         """API lấy danh sách quận theo province_id"""
         province_id = request.GET.get("province_id")
+        if province_id:
+            districts, error_response = self.get_filtered_queryset("province_id", province_id)
+            if error_response:
+                return error_response
+        else:
+            districts = self.queryset 
 
-        if not province_id:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="province_id is required",
-            )
-
-        districts = District.objects.filter(province_id=province_id)
         serializer = self.get_serializer(districts, many=True)
         return api_response(status.HTTP_200_OK, data=serializer.data)
 
@@ -62,13 +72,12 @@ class WardViewSet(CustomViewSet):
     def list(self, request, *args, **kwargs):
         """API lấy danh sách phường dựa vào district_id"""
         district_id = request.GET.get("district_id")
+        if district_id:
+            wards, error_response = self.get_filtered_queryset("district_id", district_id)
+            if error_response:
+                return error_response
+        else:
+            wards = self.queryset 
 
-        if not district_id:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="district_id is required",
-            )
-
-        wards = Ward.objects.filter(district_id=district_id)
         serializer = self.get_serializer(wards, many=True)
         return api_response(status.HTTP_200_OK, data=serializer.data)
