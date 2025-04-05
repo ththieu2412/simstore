@@ -15,7 +15,7 @@ from .serializers import (
 )
 
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related("customer", "discount", "sim").all()
     serializer_class = OrderSerializer
 
     def create(self, request, *args, **kwargs):
@@ -23,129 +23,110 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                # Kiểm tra hoặc tạo mới khách hàng
-                customer_data = data.get("customer")
-                if not customer_data:
-                    raise ValueError("Thiếu thông tin khách hàng")
+                customer = self._get_or_create_customer(data.get("customer"))
 
-                customer_serializer = CustomerSerializer(data=customer_data)
-                if customer_serializer.is_valid():
-                    customer = customer_serializer.save()
-                else:
-                    raise ValueError(customer_serializer.errors)
+                discount_instance = self._validate_discount(data.get("discount"))
 
-                # Kiểm tra mã giảm giá
-                discount_instance = None
-                discount_id = data.get("discount")
-                if discount_id:
-                    try:
-                        discount_instance = Discount.objects.select_for_update().get(id=discount_id)
+                sim_instance = self._validate_sim(data.get("sim"))
 
-                        if discount_instance.status == 1:
-                            raise ValueError("Mã giảm giá đã được sử dụng")
-                        if discount_instance.end_date < now():
-                            raise ValueError("Mã giảm giá đã hết hạn")
-                        if discount_instance.start_date > now():
-                            raise ValueError("Mã giảm giá không hợp lệ")
+                order = self._create_order(data, customer, discount_instance)
 
-                    except Discount.DoesNotExist:
-                        raise ValueError("Mã giảm giá không tồn tại")
+                self._update_sim_and_discount(sim_instance, discount_instance)
 
-                # Kiểm tra SIM trước khi tạo đơn hàng
-                sim_instance = SIM.objects.select_for_update().get(id=data["sim"])
-                if sim_instance.status in [0, 1]:  # 0: Hết hàng, 1: Có sẵn
-                    raise ValueError("SIM không hợp lệ")
+                self._create_payment(order, data.get("payment"))
 
-                order_data = {
-                    "detailed_address": data["detailed_address"],
-                    "sim": data["sim"],
-                    "customer": customer.id, 
-                    "ward": data["ward"],
-                    "discount": discount_instance.id if discount_instance else None,
-                    "note": data.get("note", ""),
-                }
-                order_serializer = OrderSerializer(data=order_data)
-                if order_serializer.is_valid():
-                    order = order_serializer.save()
-
-                    # Cập nhật trạng thái SIM về 0 (hết hàng)
-                    sim_instance = SIM.objects.select_for_update().get(id=data["sim"])
-                    sim_instance.status = 0
-                    sim_instance.save()
-
-                    # Cập nhật trạng thái mã giảm giá
-                    if discount_instance:
-                        discount_instance.status = 1 
-                        discount_instance.save()
-
-                    payment_method = data.get("payment")
-                    if payment_method not in dict(Payment.PAYMENT_METHOD_CHOICES):
-                        raise ValueError(
-                            "Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'tranfer'."
-                        )
-
-                    Payment.objects.create(
-                        order=order,
-                        payment_method=payment_method,
-                        status=0,
-                    )
-
-                    return api_response(status.HTTP_201_CREATED, data=order_serializer.data)
-
-                raise ValueError(order_serializer.errors)
+                return api_response(status.HTTP_201_CREATED, data=OrderSerializer(order).data)
 
         except ValueError as e:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=str(e))
         except Exception as e:
-            print(e)
             return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors="Lỗi không xác định")
+
+    def _get_or_create_customer(self, customer_data):
+        if not customer_data:
+            raise ValueError("Thiếu thông tin khách hàng")
+
+        customer_serializer = CustomerSerializer(data=customer_data)
+        if customer_serializer.is_valid():
+            return customer_serializer.save()
+        raise ValueError(customer_serializer.errors)
+
+    def _validate_discount(self, discount_id):
+        if not discount_id:
+            return None
+
+        try:
+            discount = Discount.objects.select_for_update().get(id=discount_id)
+            if discount.status == 1:
+                raise ValueError("Mã giảm giá đã được sử dụng")
+            if discount.end_date < now():
+                raise ValueError("Mã giảm giá đã hết hạn")
+            if discount.start_date > now():
+                raise ValueError("Mã giảm giá không hợp lệ")
+            return discount
+        except Discount.DoesNotExist:
+            raise ValueError("Mã giảm giá không tồn tại")
+
+    def _validate_sim(self, sim_id):
+        if not sim_id:
+            raise ValueError("Thiếu thông tin SIM")
+
+        sim = SIM.objects.select_for_update().get(id=sim_id)
+        if sim.status in [0, 1]:
+            raise ValueError("SIM không hợp lệ")
+        return sim
+
+    def _create_order(self, data, customer, discount_instance):
+        order_data = {
+            "detailed_address": data["detailed_address"],
+            "sim": data["sim"],
+            "customer": customer.id,
+            "ward": data["ward"],
+            "discount": discount_instance.id if discount_instance else None,
+            "note": data.get("note", ""),
+        }
+        order_serializer = OrderSerializer(data=order_data)
+        if order_serializer.is_valid():
+            return order_serializer.save()
+        raise ValueError(order_serializer.errors)
+
+    def _update_sim_and_discount(self, sim_instance, discount_instance):
+        sim_instance.status = 0 
+        sim_instance.save()
+
+        if discount_instance:
+            discount_instance.status = 1  
+            discount_instance.save()
+
+    def _create_payment(self, order, payment_method):
+        if payment_method not in dict(Payment.PAYMENT_METHOD_CHOICES):
+            raise ValueError("Phương thức thanh toán không hợp lệ. Chỉ chấp nhận 'cash' hoặc 'tranfer'.")
+
+        Payment.objects.create(
+            order=order,
+            payment_method=payment_method,
+            status=0,
+        )
 
     def update(self, request, pk=None, *args, **kwargs):
         """Cập nhật đơn hàng"""
         order = get_object_or_404(Order, pk=pk)
         data = request.data.copy()
-        employee_id = data.get("employee_id", None)
 
-        # Không cho phép cập nhật nếu đơn hàng đã hủy hoặc đã giao thành công
-        if order.status_order == 0:
+        if order.status_order in [0, 3]:  # 0: Đã hủy, 3: Đã giao thành công
             return api_response(
                 status.HTTP_400_BAD_REQUEST,
-                errors="Không thể cập nhật đơn hàng đã hủy.",
+                errors="Không thể cập nhật đơn hàng đã hủy hoặc đã giao thành công.",
             )
-        if order.status_order == 3:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="Không thể cập nhật đơn hàng đã giao thành công.",
-            )
-
-        # Lưu trạng thái cũ trước khi cập nhật
-        old_status = order.status_order
-        new_status = data.get("status_order", None)
 
         with transaction.atomic():
             try:
-                if new_status is not None and new_status != old_status:
-                    if employee_id is None:
-                        return api_response(
-                            status.HTTP_400_BAD_REQUEST,
-                            errors="Cần cung cấp employee_id để cập nhật trạng thái.",
-                        )
+                self._update_order_status(order, data)
 
-                    employee = get_object_or_404(Employee, pk=employee_id)
-                    DetailUpdateOrder.objects.create(
-                        order=order,
-                        status_updated=new_status,
-                        employee=employee,
-                        updated_at=timezone.now(),
-                    )
-                    order.status_order = new_status
-
-                # Cập nhật các trường khác
                 fields_to_update = ["detailed_address", "ward", "note", "discount"]
                 for field in fields_to_update:
                     if field in data:
                         setattr(order, field, data[field])
-
                 # Tính lại total_price nếu có thay đổi giảm giá
                 if "discount" in data or "sim" in data:
                     order.total_price = order.calculate_total_price()
@@ -163,15 +144,30 @@ class OrderViewSet(viewsets.ModelViewSet):
                     errors=f"Lỗi trong quá trình cập nhật: {str(e)}",
                 )
 
+    def _update_order_status(self, order, data):
+        new_status = data.get("status_order", None)
+        if new_status is not None and new_status != order.status_order:
+            employee_id = data.get("employee_id")
+            if not employee_id:
+                raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
+
+            employee = get_object_or_404(Employee, pk=employee_id)
+            DetailUpdateOrder.objects.create(
+                order=order,
+                status_updated=new_status,
+                employee=employee,
+                updated_at=now(),
+            )
+            order.status_order = new_status
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
-    http_method_names = ["get", "put", "patch"]  # Chỉ cho phép GET, PUT, PATCH
+    http_method_names = ["get", "put", "patch"] 
 
     def update(self, request, *args, **kwargs):
         """Cập nhật thông tin khách hàng"""
-        partial = kwargs.pop("partial", False)  # PUT (full update) hoặc PATCH (partial update)
+        partial = kwargs.pop("partial", False)  
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
@@ -181,7 +177,6 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
-
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
@@ -190,7 +185,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
         """Lấy danh sách Payment, có thể lọc theo status hoặc phương thức thanh toán"""
         payments = self.queryset
 
-        # Lọc theo status nếu có
         status_filter = request.query_params.get("status")
         if status_filter is not None:
             payments = payments.filter(status=status_filter)
@@ -207,7 +201,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
         """Cập nhật Payment (trạng thái hoặc phương thức thanh toán)"""
         payment = get_object_or_404(Payment, pk=pk)
 
-        # Không cho phép cập nhật nếu status đã là 1 (đã thanh toán)
         if payment.status == 1:
             return api_response(
                 status.HTTP_400_BAD_REQUEST,
@@ -216,14 +209,13 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             data = request.data.copy()
-            data["updated_at"] = timezone.now()  # Gán lại thời gian hiện tại
+            data["updated_at"] = timezone.now()  
 
             serializer = PaymentSerializer(payment, data=data, partial=kwargs.get("partial", False))
             if serializer.is_valid():
                 serializer.save()
                 return api_response(status.HTTP_200_OK, data=serializer.data)
             return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-
 
 class DiscountViewSet(viewsets.ModelViewSet):
     queryset = Discount.objects.all()

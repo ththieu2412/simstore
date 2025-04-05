@@ -11,9 +11,23 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class OrderSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(
+        default=now,
+        format="%Y-%m-%d %H:%M:%S",
+        input_formats=[
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S%z",
+        ],
+    )
     class Meta:
         model = Order
         fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["status_order"] = instance.get_status_order_display()
+        return data
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,7 +58,7 @@ class DiscountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Discount
         fields = '__all__'
-        read_only_fields = ['status']  # Không cho phép nhập trực tiếp status
+        read_only_fields = ['status']
 
     def validate(self, data):
         """
@@ -62,18 +76,6 @@ class DiscountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"start_date": "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc."})
 
         return data
-
-    # def create(self, validated_data):
-    #     """
-    #     Xử lý logic status trước khi lưu.
-    #     """
-    #     start_date = validated_data.get('start_date')
-
-    #     # Nếu start_date > hiện tại thì status = False (chưa có hiệu lực)
-    #     validated_data['status'] = start_date < now()
-
-    #     return super().create(validated_data)
-
 
     def to_representation(self, instance):
         """

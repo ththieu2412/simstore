@@ -94,9 +94,9 @@ class DetailUpdateOrder(models.Model):
     updated_at = models.DateTimeField(auto_now_add=True)
     status_updated = models.IntegerField(choices=STATUS_CHOICES)
     employee = models.ForeignKey(
-        Employee,  # Liên kết tới model Employee
-        on_delete=models.CASCADE,  # Xóa bản ghi nếu nhân viên bị xóa
-        related_name='order_updates'  # Tạo quan hệ ngược
+        Employee,  
+        on_delete=models.CASCADE,  
+        related_name='order_updates' 
     ) 
 
     def __str__(self):
