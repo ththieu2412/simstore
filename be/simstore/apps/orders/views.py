@@ -181,18 +181,25 @@ class OrderViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             try:
                 self._update_order_status(order, data)
-
-                fields_to_update = ["detailed_address", "ward", "note", "discount"]
+                fields_to_update = ["detailed_address", "ward", "note", "discount", "customer"]
                 for field in fields_to_update:
                     if field in data:
-                        setattr(order, field, data[field])
+                        if field == "customer":
+                            customer_data = data.get("customer")
+                            if customer_data:
+                                customer_serializer = CustomerSerializer(order.customer, data=customer_data, partial=True)
+                                if customer_serializer.is_valid():
+                                    customer_serializer.save()
+                                else:
+                                    raise ValueError(self._format_errors(customer_serializer.errors))
+                        else:
+                            setattr(order, field, data[field])
 
                 if "discount" in data or "sim" in data:
                     order.total_price = order.calculate_total_price()
 
                 order.save()
 
-                # Trả về toàn bộ dữ liệu đã cập nhật
                 serializer = self.get_serializer(order)
                 return api_response(
                     status.HTTP_200_OK,
@@ -226,6 +233,10 @@ class OrderViewSet(viewsets.ModelViewSet):
             raise ValueError("Không thể cập nhật trạng thái đơn hàng đã hủy hoặc đã giao thành công.")
 
         if new_status is not None and new_status != order.status_order:
+            if new_status == 0:
+                order.sim.status = 2
+                order.sim.save()
+
             DetailUpdateOrder.objects.create(
                 order=order,
                 status_updated=new_status,
@@ -233,6 +244,25 @@ class OrderViewSet(viewsets.ModelViewSet):
                 updated_at=now(),
             )
             order.status_order = new_status
+
+    def destroy(self, request, *args, **kwargs):
+        """Xóa đơn hàng nếu trạng thái là 'Chờ xác nhận'"""
+        order = self.get_object()
+
+        if order.status_order != 1: 
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Chỉ có thể xóa đơn hàng ở trạng thái 'Chờ xác nhận'."
+            )
+        
+        order.sim.status = 2
+        order.sim.save()
+
+        self.perform_destroy(order)
+        return api_response(
+            status.HTTP_204_NO_CONTENT,
+            data="Đơn hàng đã được xóa thành công."
+        )
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()

@@ -7,6 +7,14 @@ from django.utils import timezone
 from datetime import datetime
 
 class CustomerSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(
+        input_formats=[
+            "%Y-%m-%d %H:%M:%S",   # 2025-03-04 08:30:00
+            "%Y-%m-%dT%H:%M:%SZ",  # 2025-03-04T08:30:00Z (ISO 8601)
+            "%Y-%m-%dT%H:%M:%S%z", # 2025-03-04T08:30:00+07:00
+        ],
+        format="%H:%M:%S %Y-%m-%d"
+    )
     class Meta:
         model = Customer
         fields = "__all__"
@@ -15,7 +23,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
         default=now,
-        format="%Y-%m-%d %H:%M:%S",
+        format="%H:%M:%S %Y-%m-%d",
         input_formats=[
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%dT%H:%M:%SZ",
@@ -65,15 +73,16 @@ class DiscountSerializer(serializers.ModelSerializer):
             "%Y-%m-%dT%H:%M:%SZ",  # 2025-03-04T08:30:00Z (ISO 8601)
             "%Y-%m-%dT%H:%M:%S%z", # 2025-03-04T08:30:00+07:00
         ],
-        format="%Y-%m-%d %H:%M:%S"
+        format="%H:%M:%S %Y-%m-%d"
     )
+
     end_date = serializers.DateTimeField(
         input_formats=[
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%dT%H:%M:%SZ",
             "%Y-%m-%dT%H:%M:%S%z",
         ],
-        format="%Y-%m-%d %H:%M:%S"
+        format="%H:%M:%S %Y-%m-%d"
     )
     class Meta:
         model = Discount
