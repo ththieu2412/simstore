@@ -8,126 +8,117 @@
     <style>
       /* Animation */
       @keyframes fadeIn {
-        0% {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
       }
 
-      tr {
-        animation: fadeIn 0.5s ease-out forwards;
-      }
-
-      tr:hover {
-        background-color: #f9fafb;
-        transition: background-color 0.3s ease;
+      tbody tr {
+        animation: fadeIn 0.3s ease-out forwards;
       }
 
       .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #3b82f6;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         animation: spin 1s linear infinite;
         margin: 20px auto;
       }
 
       @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
     </style>
   </head>
-  <body class="bg-gray-100 font-sans">
-    <div class="container mx-auto p-6">
+  <body class="bg-gray-50 font-sans antialiased">
+    <div class="container mx-auto p-4 md:p-6 max-w-7xl">
       <!-- Header -->
-      <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">
-        Import Receipts
-      </h1>
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
+          Import Receipts
+        </h1>
+        <button
+          onclick="window.location.href='import_receipt_add.html'"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition duration-200"
+        >
+          + Tạo Import Mới
+        </button>
+      </div>
 
       <!-- Search and Filters -->
-      <div class="mb-4 flex space-x-4">
-        <input
-          type="text"
-          id="searchInput"
-          class="p-2 border rounded w-1/3"
-          placeholder="Search by ID, Supplier, Employee"
-        />
-        <button
-          onclick="fetchReceipts()"
-          class="px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Search
-        </button>
-
-        <!-- Button tạo import mới -->
-        <button
-        onclick="window.location.href='import_receipt_add.html'"
-        class="px-4 py-2 bg-green-500 text-white rounded mb-4"
-      >
-        + Tạo Import Mới
-      </button>
-
-
-      <!-- Sorting Options -->
-      <div class="mb-4">
-        <label for="sortBy" class="mr-2 font-semibold">Sort by:</label>
-        <select id="sortBy" class="p-2 border rounded" onchange="sortTable()">
-          <option value="id">ID</option>
-          <option value="created_at">Date Created</option>
-          <option value="supplier">Supplier</option>
-        </select>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div class="flex flex-1 items-center gap-3">
+          <input
+            type="text"
+            id="searchInput"
+            class="w-full md:w-80 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            placeholder="Tìm theo ID, Nhà cung cấp, Nhân viên..."
+          />
+          <button
+            onclick="fetchReceipts()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-200"
+          >
+            Tìm kiếm
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="sortBy" class="text-sm font-medium text-gray-700">Sắp xếp:</label>
+          <select
+            id="sortBy"
+            class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            onchange="sortTable()"
+          >
+            <option value="id">ID</option>
+            <option value="created_at">Ngày tạo</option>
+            <option value="supplier">Nhà cung cấp</option>
+          </select>
+        </div>
       </div>
 
       <!-- Loading Spinner -->
-      <div id="loading" class="flex justify-center">
+      <div id="loading" class="flex justify-center hidden">
         <div class="spinner"></div>
       </div>
 
       <!-- Error Message -->
-      <div id="error" class="hidden text-red-600 text-center mb-4"></div>
+      <div id="error" class="hidden text-red-600 text-center mb-4 font-medium"></div>
 
       <!-- Table -->
-      <div id="tableContainer" class="bg-white shadow-lg rounded-lg p-6 hidden">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-200 text-gray-600">
-              <th class="p-3 border-b">ID</th>
-              <th class="p-3 border-b">Created At</th>
-              <th class="p-3 border-b">Note</th>
-              <th class="p-3 border-b">Supplier</th>
-              <th class="p-3 border-b">Created_by</th>
-              <th class="p-3 border-b">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="receiptsTable"></tbody>
-        </table>
+      <div id="tableContainer" class="bg-white shadow-md rounded-lg overflow-hidden hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+              <tr>
+                <th class="p-3 font-semibold">ID</th>
+                <th class="p-3 font-semibold">Ngày tạo</th>
+                <th class="p-3 font-semibold">Ghi chú</th>
+                <th class="p-3 font-semibold">Nhà cung cấp</th>
+                <th class="p-3 font-semibold">Người tạo</th>
+                <th class="p-3 font-semibold">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="receiptsTable" class="divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
 
         <!-- Pagination -->
-        <div class="flex justify-center mt-4">
+        <div class="flex items-center justify-center gap-3 p-4">
           <button
             id="prevPage"
-            class="px-4 py-2 bg-gray-400 text-white rounded mx-1"
+            class="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition duration-200"
             onclick="changePage(-1)"
           >
-            Prev
+            Trước
           </button>
-          <span id="pageIndicator" class="px-4 py-2">Page 1</span>
+          <span id="pageIndicator" class="text-sm font-medium text-gray-700">Page 1</span>
           <button
             id="nextPage"
-            class="px-4 py-2 bg-gray-400 text-white rounded mx-1"
+            class="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition duration-200"
             onclick="changePage(1)"
           >
-            Next
+            Sau
           </button>
         </div>
       </div>
@@ -140,7 +131,7 @@
 
       function formatDate(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleString("en-US", {
+        return date.toLocaleString("vi-VN", {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -158,25 +149,27 @@
 
         paginatedData.forEach((receipt, index) => {
           const row = document.createElement("tr");
-          row.className = "border-b";
-          row.style.animationDelay = `${index * 0.2}s`;
+          row.className = "hover:bg-gray-50 transition duration-150";
+          row.style.animationDelay = `${index * 0.05}s`;
           row.innerHTML = `
             <td class="p-3">${receipt.id}</td>
             <td class="p-3">${formatDate(receipt.created_at)}</td>
-            <td class="p-3">${receipt.note}</td>
-            <td class="p-3">${receipt.supplier?.name}</td>
-            <td class="p-3">${receipt.employee?.full_name}</td>
-            <td class="p-3">
-              <button class="px-2 py-1 bg-green-500 text-white rounded">View</button>
-              <button class="px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-              <button class="px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+            <td class="p-3">${receipt.note || "N/A"}</td>
+            <td class="p-3">${receipt.supplier?.name || "N/A"}</td>
+            <td class="p-3">${receipt.employee?.full_name || "N/A"}</td>
+            <td class="p-3 flex gap-2">
+              <button class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition">Xem</button>
+              <button class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition">Sửa</button>
+              <button class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition">Xóa</button>
             </td>
           `;
           tableBody.appendChild(row);
         });
 
         document.getElementById("tableContainer").classList.remove("hidden");
-        document.getElementById("pageIndicator").textContent = `Page ${currentPage}`;
+        document.getElementById("pageIndicator").textContent = `Trang ${currentPage}`;
+        document.getElementById("prevPage").disabled = currentPage === 1;
+        document.getElementById("nextPage").disabled = end >= receipts.length;
       }
 
       async function fetchReceipts() {
@@ -192,7 +185,7 @@
         } catch (error) {
           document.getElementById("loading").classList.add("hidden");
           document.getElementById("error").classList.remove("hidden");
-          document.getElementById("error").textContent = `Error: ${error.message}`;
+          document.getElementById("error").textContent = `Lỗi: ${error.message}`;
         }
       }
 
@@ -203,110 +196,13 @@
 
       function sortTable() {
         const criteria = document.getElementById("sortBy").value;
-        receipts.sort((a, b) => (a[criteria] > b[criteria] ? 1 : -1));
+        receipts.sort((a, b) => {
+          const valA = criteria === "supplier" ? a.supplier?.name : a[criteria];
+          const valB = criteria === "supplier" ? b.supplier?.name : b[criteria];
+          return valA > valB ? 1 : -1;
+        });
         populateTable();
       }
-
-      // Mở modal nhập Import
-function openImportModal() {
-  document.getElementById("importModal").classList.remove("hidden");
-}
-
-// Đóng modal nhập Import
-function closeImportModal() {
-  document.getElementById("importModal").classList.add("hidden");
-}
-
-// Thêm input cho SIM mới
-function addSimInput() {
-  const container = document.getElementById("simListContainer");
-  const index = container.children.length; // Xác định index để phân biệt các SIM
-
-  const simHTML = `
-    <div class="border p-2 mb-2">
-      <label class="block">Số điện thoại:</label>
-      <input id="phone_${index}" type="text" class="w-full p-2 border rounded mb-2" placeholder="SĐT">
-
-      <label class="block">Nhà mạng:</label>
-      <input id="network_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="ID Nhà mạng">
-
-      <label class="block">Danh mục 1:</label>
-      <input id="category1_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Danh mục 1">
-
-      <label class="block">Danh mục 2:</label>
-      <input id="category2_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Danh mục 2">
-
-      <label class="block">Nhân viên nhập:</label>
-      <input id="sim_employee_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="ID Nhân viên">
-
-      <label class="block">Giá nhập:</label>
-      <input id="import_price_${index}" type="number" class="w-full p-2 border rounded mb-2" placeholder="Giá nhập">
-
-      <label class="block">Loại:</label>
-      <select id="type_${index}" class="w-full p-2 border rounded mb-2">
-        <option value="qr">QR</option>
-        <option value="normal">Normal</option>
-      </select>
-      
-      <label class="block">Trạng thái:</label>
-      <select id="status_${index}" class="w-full p-2 border rounded mb-2">
-        <option value="true">Hoạt động</option>
-        <option value="false">Không hoạt động</option>
-      </select>
-    </div>
-  `;
-  container.innerHTML += simHTML;
-}
-
-// Gửi request tạo Import
-async function createImport() {
-  const supplier = document.getElementById("supplier").value;
-  const employee = document.getElementById("employee").value;
-  const note = document.getElementById("note").value;
-  const simListContainer = document.getElementById("simListContainer");
-
-  // Lấy danh sách SIM nhập
-  const simList = [];
-  for (let i = 0; i < simListContainer.children.length; i++) {
-    simList.push({
-      sim: {
-        phone_number: document.getElementById(`phone_${i}`).value,
-        mobile_network_operator: parseInt(document.getElementById(`network_${i}`).value),
-        category_1: parseInt(document.getElementById(`category1_${i}`).value),
-        category_2: parseInt(document.getElementById(`category2_${i}`).value),
-        employee: parseInt(document.getElementById(`sim_employee_${i}`).value),
-        status: document.getElementById(`status_${i}`).value === "true",
-        type: document.getElementById(`type_${i}`).value,
-      },
-      import_price: parseInt(document.getElementById(`import_price_${i}`).value),
-    });
-  }
-
-  // Dữ liệu gửi API
-  const requestData = {
-    supplier: parseInt(supplier),
-    employee: parseInt(employee),
-    note: note,
-    sim_list: simList,
-  };
-
-  try {
-    const response = await fetch("http://localhost:8000/api/suppliers/import-receipts/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestData),
-    });
-
-    if (!response.ok) throw new Error(`Lỗi HTTP: ${response.status}`);
-
-    alert("Import mới đã được tạo thành công!");
-    closeImportModal();
-    fetchReceipts(); // Refresh danh sách import sau khi tạo thành công
-  } catch (error) {
-    alert(`Lỗi khi tạo import: ${error.message}`);
-  }
-}
-
 
       window.onload = fetchReceipts;
     </script>
