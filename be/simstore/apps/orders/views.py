@@ -182,13 +182,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             try:
                 self._update_order_status(order, data)
 
-                # Cập nhật các trường khác
                 fields_to_update = ["detailed_address", "ward", "note", "discount"]
                 for field in fields_to_update:
                     if field in data:
                         setattr(order, field, data[field])
 
-                # Tính lại total_price nếu có thay đổi giảm giá hoặc SIM
                 if "discount" in data or "sim" in data:
                     order.total_price = order.calculate_total_price()
 
@@ -208,14 +206,26 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
 
     def _update_order_status(self, order, data):
-        if not employee_id:
-                raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
-        
+        """
+        Cập nhật trạng thái đơn hàng với các kiểm tra bổ sung.
+        """
         new_status = data.get("status_order", None)
+        employee_id = data.get("employee_id")
+
+        if not employee_id:
+            raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
+
+        employee = get_object_or_404(Employee, pk=employee_id)
+
+        if employee.status == 0:  
+            raise ValueError("Nhân viên đã nghỉ việc, không thể cập nhật trạng thái đơn hàng.")
+        if not employee.account.is_active:  
+            raise ValueError("Tài khoản của nhân viên đã bị vô hiệu hóa, không thể cập nhật trạng thái đơn hàng.")
+
+        if order.status_order in [0, 3]: 
+            raise ValueError("Không thể cập nhật trạng thái đơn hàng đã hủy hoặc đã giao thành công.")
+
         if new_status is not None and new_status != order.status_order:
-            employee_id = data.get("employee_id")
-            
-            employee = get_object_or_404(Employee, pk=employee_id)
             DetailUpdateOrder.objects.create(
                 order=order,
                 status_updated=new_status,
