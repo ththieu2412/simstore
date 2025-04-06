@@ -5,6 +5,7 @@ from .models import Order, Customer, Payment, Discount
 from django.utils.timezone import now
 from django.utils import timezone
 from datetime import datetime
+import uuid
 
 class CustomerSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
@@ -87,7 +88,7 @@ class DiscountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Discount
         fields = '__all__'
-        read_only_fields = ['status']
+        read_only_fields = ['status', 'discount_code']
 
     def validate(self, data):
         """
@@ -106,6 +107,23 @@ class DiscountSerializer(serializers.ModelSerializer):
 
         return data
 
+    def validate_employee(self, employee):
+        """
+        Kiểm tra trạng thái của nhân viên và tài khoản.
+        """
+        if employee.status == 0:  # 0: Đã nghỉ việc
+            raise serializers.ValidationError("Nhân viên đã nghỉ việc, không thể thực hiện thao tác.")
+        if not employee.account.is_active:  # Tài khoản bị vô hiệu hóa
+            raise serializers.ValidationError("Tài khoản của nhân viên đã bị vô hiệu hóa, không thể thực hiện thao tác.")
+        return employee
+    
+    def create(self, validated_data):
+        """
+        Ghi đè phương thức create để tự động tạo discount_code duy nhất.
+        """
+        validated_data["discount_code"] = f"MGG{uuid.uuid4().hex[:8].upper()}"
+        return super().create(validated_data)
+    
     def to_representation(self, instance):
         """
         Format lại start_date và end_date trước khi trả về.

@@ -29,13 +29,6 @@ class Discount(models.Model):
         related_name='discount_records'
     )
 
-    def save(self, *args, **kwargs):
-        date_str = now().strftime("%d%m%y")  # Lấy ngày tháng năm (DDMMYY)
-        last_discount = Discount.objects.order_by('-id').first()  # Lấy ID lớn nhất
-        next_id = last_discount.id + 1 if last_discount else 1  # ID tiếp theo
-        self.discount_code = f"MGG{date_str}{next_id}"
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.percentage}% discount"
     

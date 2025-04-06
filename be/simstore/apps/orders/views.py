@@ -243,6 +243,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                 employee=employee,
                 updated_at=now(),
             )
+
+            if new_status == 3:
+                Payment.objects.filter(order=order).update(status=1)
+            
             order.status_order = new_status
 
     def destroy(self, request, *args, **kwargs):
