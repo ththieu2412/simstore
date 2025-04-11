@@ -1,210 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee List</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 30px 30px;
-            background-color: #f0f2f5;
-            color: #333;
-        }
-        /* Header cố định */
-        .page-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #2196f3;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        .page-header:hover {
-            background-color: #1e87db;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        .page-header .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .page-header h1 {
-            margin: 0;
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            transition: transform 0.3s ease;
-        }
-        .page-header:hover h1 {
-            transform: scale(1.02);
-        }
-        /* Nội dung chính */
-        .main-content {
-            margin-top: 80px; /* Tăng khoảng cách để không bị che */
-        }
-        .container {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        .search-bar {
-            position: relative;
-            display: flex;
-            align-items: center;
-            width: 300px;
-        }
-        .search-bar input {
-            width: 100%;
-            padding: 12px 12px 12px 40px;
-            border: 1px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 14px;
-            background: #fafafa;
-            transition: all 0.3s ease;
-        }
-        .search-bar input:focus {
-            outline: none;
-            border-color: #2196f3;
-            background: #fff;
-            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
-        }
-        .search-bar::before {
-            content: "🔍";
-            position: absolute;
-            left: 12px;
-            font-size: 16px;
-            color: #888;
-        }
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .add-btn {
-            background-color: #2196f3;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .add-btn:hover {
-            background-color: #1e87db;
-            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
-        }
-        .add-btn::before {
-            content: "+";
-            font-size: 18px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid #e8ecef;
-        }
-        th {
-            background-color: #f8f9fa;
-            color: #495057;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 13px;
-        }
-        td {
-            color: #6c757d;
-            font-size: 14px;
-        }
-        tr {
-            transition: background-color 0.2s ease;
-        }
-        tr:hover {
-            background-color: #f1f3f5;
-            cursor: pointer;
-        }
-        .error {
-            color: #f44336;
-            margin-top: 15px;
-            font-size: 14px;
-            text-align: center;
-        }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 30px 30px;
+        background-color: #f0f2f5;
+        color: #333;
+      }
+      /* Header cố định */
+      .page-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #2196f3;
+        color: white;
+        padding: 20px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        transition: all 0.3s ease;
+      }
+      .page-header:hover {
+        background-color: #1e87db;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .page-header .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .page-header h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        transition: transform 0.3s ease;
+      }
+      .page-header:hover h1 {
+        transform: scale(1.02);
+      }
+      /* Nội dung chính */
+      .main-content {
+        margin-top: 80px; /* Tăng khoảng cách để không bị che */
+      }
+      .container {
+        background: #ffffff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+      }
+      .search-bar {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 300px;
+      }
+      .search-bar input {
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 1px solid #e0e0e0;
+        border-radius: 25px;
+        font-size: 14px;
+        background: #fafafa;
+        transition: all 0.3s ease;
+      }
+      .search-bar input:focus {
+        outline: none;
+        border-color: #2196f3;
+        background: #fff;
+        box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+      }
+      .search-bar::before {
+        content: "🔍";
+        position: absolute;
+        left: 12px;
+        font-size: 16px;
+        color: #888;
+      }
+      button {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+      .add-btn {
+        background-color: #2196f3;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .add-btn:hover {
+        background-color: #1e87db;
+        box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+      }
+      .add-btn::before {
+        content: "+";
+        font-size: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      th,
+      td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #e8ecef;
+      }
+      th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+      }
+      td {
+        color: #6c757d;
+        font-size: 14px;
+      }
+      tr {
+        transition: background-color 0.2s ease;
+      }
+      tr:hover {
+        background-color: #f1f3f5;
+        cursor: pointer;
+      }
+      .error {
+        color: #f44336;
+        margin-top: 15px;
+        font-size: 14px;
+        text-align: center;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Header cố định -->
     <header class="page-header">
-        <div class="header-content">
-            <h1>Danh sách nhân viên</h1>
-        </div>
+      <div class="header-content">
+        <h1>Danh sách nhân viên</h1>
+      </div>
     </header>
 
     <!-- Nội dung chính -->
     <div class="main-content">
-        <div class="container">
-            <div class="header">
-                <div class="search-bar">
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="Search by name..."
-                        onkeyup="searchEmployees()"
-                    />
-                </div>
-                <button class="add-btn" onclick="window.location.href='employee_add.html'">
-                    Add New Employee
-                </button>
-            </div>
-            <div id="employeeTable"></div>
+      <div class="container">
+        <div class="header">
+          <div class="search-bar">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search by name..."
+              onkeyup="searchEmployees()"
+            />
+          </div>
+          <button
+            class="add-btn"
+            onclick="window.location.href='employee_add.html'"
+          >
+            Add New Employee
+          </button>
         </div>
+        <div id="employeeTable"></div>
+      </div>
     </div>
 
     <script>
-        const apiUrl = "http://localhost:8000/api/accounts/employees/";
-        let allEmployees = [];
+      const apiUrl = "http://192.168.1.43:8000/api/accounts/employees/";
+      let allEmployees = [];
 
-        async function fetchEmployees() {
-            try {
-                const response = await fetch(apiUrl, {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                });
+      async function fetchEmployees() {
+        try {
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
 
-                if (!response.ok) throw new Error("Failed to fetch employees");
+          if (!response.ok) throw new Error("Failed to fetch employees");
 
-                allEmployees = await response.json();
-                displayEmployees(allEmployees);
-            } catch (error) {
-                document.getElementById("employeeTable").innerHTML = 
-                    `<p class="error">Error: ${error.message}</p>`;
-            }
+          allEmployees = await response.json();
+          displayEmployees(allEmployees);
+        } catch (error) {
+          document.getElementById(
+            "employeeTable"
+          ).innerHTML = `<p class="error">Error: ${error.message}</p>`;
         }
+      }
 
-        function displayEmployees(employees) {
-            let tableHTML = `
+      function displayEmployees(employees) {
+        let tableHTML = `
                 <table>
                     <thead>
                         <tr>
@@ -219,32 +224,38 @@
                     <tbody>
             `;
 
-            employees.forEach((employee) => {
-                tableHTML += `
-                    <tr onclick="window.location.href='employee_detail.html?id=${employee.id}'">
+        employees.forEach((employee) => {
+          tableHTML += `
+                    <tr onclick="window.location.href='employee_detail.html?id=${
+                      employee.id
+                    }'">
                         <td>${employee.id}</td>
                         <td>${employee.full_name}</td>
                         <td>${employee.date_of_birth}</td>
                         <td>${employee.gender ? "Nam" : "Nữ"}</td>
                         <td>${employee.email}</td>
-                        <td>${employee.status ? "Đang làm việc" : "Đã nghỉ việc"}</td>
+                        <td>${
+                          employee.status ? "Đang làm việc" : "Đã nghỉ việc"
+                        }</td>
                     </tr>
                 `;
-            });
+        });
 
-            tableHTML += `</tbody></table>`;
-            document.getElementById("employeeTable").innerHTML = tableHTML;
-        }
+        tableHTML += `</tbody></table>`;
+        document.getElementById("employeeTable").innerHTML = tableHTML;
+      }
 
-        function searchEmployees() {
-            const searchTerm = document.getElementById("searchInput").value.toLowerCase();
-            const filteredEmployees = allEmployees.filter((employee) =>
-                employee.full_name.toLowerCase().includes(searchTerm)
-            );
-            displayEmployees(filteredEmployees);
-        }
+      function searchEmployees() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const filteredEmployees = allEmployees.filter((employee) =>
+          employee.full_name.toLowerCase().includes(searchTerm)
+        );
+        displayEmployees(filteredEmployees);
+      }
 
-        window.onload = fetchEmployees;
+      window.onload = fetchEmployees;
     </script>
-</body>
+  </body>
 </html>

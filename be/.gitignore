@@ -139,3 +139,5 @@ GitHub.sublime-settings
 
 /docker
 docker-compose.yml
+Dockerfile
+.dockerignore

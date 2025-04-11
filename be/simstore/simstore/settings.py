@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+# from dotenv import load_dotenv
+
+# load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +30,7 @@ SECRET_KEY = 'django-insecure-zbc7ep^00gvl#2-77=x8mbk0hk&$icdbd!g(6zaq&)08sbab04
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = "accounts.Account"
 
@@ -115,6 +118,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'simstore.wsgi.application'
 
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": os.getenv("DB_NAME"),
+#         "USER": os.getenv("DB_USER"),
+#         "PASSWORD": os.getenv("DB_PASSWORD"),
+#         "HOST": os.environ.get("DB_HOST", "db"),
+#         "PORT": os.getenv("DB_PORT"),
+#     }
+# }
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

@@ -154,7 +154,7 @@
         </a>
         
         <div class="avatar-container">
-            <img id="employeeAvatar" class="avatar-img" alt="Avatar" onerror="this.src='http://localhost:8000/media/image/avatar_default.png'">
+            <img id="employeeAvatar" class="avatar-img" alt="Avatar" onerror="this.src='http://192.168.1.43:8000/media/image/avatar_default.png'">
             <h2 id="employeeName"></h2>
         </div>
         <div class="detail-list" id="employeeDetail"></div>
@@ -165,7 +165,7 @@
     </div>
 
     <script>
-        const apiUrl = "http://localhost:8000/api/accounts/employees/";
+        const apiUrl = "http://192.168.1.43:8000/api/accounts/employees/";
         let currentEmployee = null;
         let isEditing = false;
 

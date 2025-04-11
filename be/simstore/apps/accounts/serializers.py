@@ -14,8 +14,13 @@ from rest_framework import serializers
 
 from .models import Account, Employee, Role
 
+from django.conf import settings
+
+
 
 class EmployeeSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = Employee
         fields = "__all__"
@@ -48,16 +53,18 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def validate_avatar(self, value):
         """Kiểm tra avatar là ảnh hợp lệ và dưới 5MB"""
-        if value:
-            if not value.name.endswith(("jpg", "jpeg", "png")):
-                raise serializers.ValidationError(
-                    "Ảnh không hợp lệ."
-                )
-            if value.size > 5 * 1024 * 1024:  
-                raise serializers.ValidationError(
-                    "Avatar file size must be less than 5MB."
-                )
+        if value.size > 5 * 1024 * 1024:  # 5MB
+            raise serializers.ValidationError("Kích thước ảnh phải nhỏ hơn 5MB.")
         return value
+    
+    def get_avatar(self, obj):
+        """Trả về URL của avatar hoặc ảnh mặc định"""
+        request = self.context.get("request")  # Lấy request từ context
+        if obj.avatar:
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        # URL mặc định nếu avatar là null
+        default_avatar_url = f"{settings.MEDIA_URL}image/avatar_default.png"
+        return request.build_absolute_uri(default_avatar_url) if request else default_avatar_url
 
 
 class AccountSerializer(serializers.ModelSerializer):
