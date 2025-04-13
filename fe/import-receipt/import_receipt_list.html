@@ -177,7 +177,7 @@
         document.getElementById("error").classList.add("hidden");
 
         try {
-          const response = await fetch("http://localhost:8000/api/suppliers/import-receipts/");
+          const response = await fetch("http://192.168.1.43:8000/api/suppliers/import-receipts/");
           if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
           receipts = await response.json();
           document.getElementById("loading").classList.add("hidden");

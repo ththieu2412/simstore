@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+from decouple import config
 # from dotenv import load_dotenv
 
 # load_dotenv()
@@ -134,15 +135,26 @@ WSGI_APPLICATION = 'simstore.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-     "default": {
+    "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "simstore",
-        "USER": "root",
-        "PASSWORD": "Hieu24122003@",  
-        "HOST": "localhost",
-        "PORT": "3306",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST", default="localhost"),
+        "PORT": config("DB_PORT", default="3306"),
     }
 }
+
+# DATABASES = {
+#      "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "simstore",
+#         "USER": "root",
+#         "PASSWORD": "",  
+#         "HOST": "localhost",
+#         "PORT": "3306",
+#     }
+# }
 
 
 # Password validation

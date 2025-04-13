@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import MobileNetworkOperator, Category1, Category2, SIM
-from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimSerializer
+from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimListSerializer, SimSerializer
 from django.utils.timezone import now
 from rest_framework.decorators import action
 from utils import api_response
@@ -45,7 +45,13 @@ class Category2ViewSet(BaseViewSet):
 
 class SimViewSet(BaseViewSet):
     queryset = SIM.objects.all()
-    serializer_class = SimSerializer
+    serializer_class = SimSerializer  # Mặc định sử dụng SimSerializer
+
+    def get_serializer_class(self):
+        """Sử dụng SimListSerializer cho action 'list'"""
+        if self.action == 'list':
+            return SimListSerializer  # Sử dụng SimListSerializer khi gọi GET danh sách
+        return super().get_serializer_class()
 
     def update(self, request, *args, **kwargs):
         """Cập nhật SIM (Chỉ cập nhật khi status khác 0)"""
@@ -55,7 +61,7 @@ class SimViewSet(BaseViewSet):
             return api_response(status.HTTP_400_BAD_REQUEST, errors="Không thể cập nhật SIM đã hết hàng")
         
         return super().update(request, *args, **kwargs)
-    
+
     def get_queryset(self):
         """
         Tự động lọc theo query params (nếu có)
@@ -80,5 +86,24 @@ class SimViewSet(BaseViewSet):
         max_price = self.request.query_params.get('max_price')
         if max_price is not None:
             queryset = queryset.filter(export_price__lte=max_price)
+
+        # Lọc theo category_1
+        category_1 = self.request.query_params.get('category_1')
+        if category_1 is not None:
+            queryset = queryset.filter(category_1=category_1)
+
+        # Lọc theo category_2
+        category_2 = self.request.query_params.get('category_2')
+        if category_2 is not None:
+            queryset = queryset.filter(category_2=category_2)
+
+        # Lọc theo employee (id hoặc name)
+        employee_id = self.request.query_params.get('employee_id')
+        if employee_id is not None:
+            queryset = queryset.filter(employee__id=employee_id)
+
+        employee_name = self.request.query_params.get('employee_name')
+        if employee_name is not None:
+            queryset = queryset.filter(employee__full_name__icontains=employee_name)
         
         return queryset

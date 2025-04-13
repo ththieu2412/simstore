@@ -141,3 +141,6 @@ GitHub.sublime-settings
 docker-compose.yml
 Dockerfile
 .dockerignore
+
+../fe/
+../simstore_fe/

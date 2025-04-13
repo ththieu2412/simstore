@@ -1,0 +1,123 @@
+/* css/employee.css (giữ nguyên) */
+.employee-container {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.employee-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.search-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 25px;
+    font-size: 14px;
+    background: #fafafa;
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: #fff;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+.search-bar::before {
+    content: "🔍";
+    position: absolute;
+    left: 12px;
+    font-size: 16px;
+    color: #888;
+}
+
+button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.add-btn {
+    background-color: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.add-btn:hover {
+    background-color: #2563eb;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    transform: scale(1.05);
+}
+
+.add-btn::before {
+    content: "+";
+    font-size: 18px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+    background-color: #f9fafb;
+    color: #1f2937;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 13px;
+}
+
+td {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+tr {
+    transition: background-color 0.2s ease;
+}
+
+tr:hover {
+    background-color: #f3f4f6;
+    cursor: pointer;
+}
+
+.error {
+    color: #ef4444;
+    margin-top: 15px;
+    font-size: 14px;
+    text-align: center;
+}
+
+#employeeTable .spinner {
+    margin: 20px auto;
+}

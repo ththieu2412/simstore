@@ -152,7 +152,7 @@
       async function fetchProvinces() {
         try {
           const response = await fetch(
-            "http://localhost:8000/api/locations/provinces/"
+            "http://192.168.1.43:8000/api/locations/provinces/"
           );
           const provinces = await response.json();
           provinces.forEach((province) => {
@@ -223,7 +223,7 @@
 
           try {
             const response = await fetch(
-              "http://localhost:8000/api/orders/orders/",
+              "http://192.168.1.43:8000/api/orders/orders/",
               {
                 method: "POST",
                 headers: {

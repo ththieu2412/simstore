@@ -75,7 +75,7 @@
         };
 
         async function fetchSuppliers() {
-            const response = await fetch("http://localhost:8000/api/suppliers/suppliers/");
+            const response = await fetch("http://192.168.1.43:8000/api/suppliers/suppliers/");
             const data = await response.json();
             const supplierSelect = document.getElementById("supplier");
             supplierSelect.innerHTML = '<option value="">Chọn nhà cung cấp</option>';
@@ -88,17 +88,17 @@
         }
 
         async function fetchMobileNetworkOperators() {
-            const response = await fetch("http://localhost:8000/api/simcards/mobile-network-operator/");
+            const response = await fetch("http://192.168.1.43:8000/api/simcards/mobile-network-operator/");
             networkOperators = await response.json();
         }
 
         async function fetchCategories1() {
-            const response = await fetch("http://localhost:8000/api/simcards/category1/");
+            const response = await fetch("http://192.168.1.43:8000/api/simcards/category1/");
             categories1 = await response.json();
         }
 
         async function fetchCategories2() {
-            const response = await fetch("http://localhost:8000/api/simcards/category2/");
+            const response = await fetch("http://192.168.1.43:8000/api/simcards/category2/");
             categories2 = await response.json();
         }
 
@@ -173,7 +173,7 @@
             loading.classList.remove("hidden");
             responseMessage.classList.add("hidden");
 
-            fetch("http://localhost:8000/api/suppliers/import-receipts/", {
+            fetch("http://192.168.1.43:8000/api/suppliers/import-receipts/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)

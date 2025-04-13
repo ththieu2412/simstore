@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn hàng - Sim Shop Admin</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h2>Sim Shop Admin</h2>
+        </div>
+        <ul>
+            <li><a href="index.html"><i>🏠</i> <span>Trang chủ</span></a></li>
+            <li><a href="sims.html"><i>📱</i> <span>Quản lý sim</span></a></li>
+            <li><a href="orders.html"><i>🛒</i> <span>Đơn hàng</span></a></li>
+            <li><a href="customers.html"><i>👥</i> <span>Khách hàng</span></a></li>
+            <li><a href="analytics.html"><i>📊</i> <span>Thống kê</span></a></li>
+            <li><a href="settings.html"><i>⚙️</i> <span>Cài đặt</span></a></li>
+            <li><a href="logout.html"><i>🚪</i> <span>Đăng xuất</span></a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Quản lý đơn hàng</h1>
+            <div class="user-info">
+                <span>Admin</span>
+                <img src="https://via.placeholder.com/40" alt="User Avatar">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>Danh sách đơn hàng</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Số sim</th>
+                        <th>Tổng tiền (VNĐ)</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>DH001</td>
+                        <td>Nguyễn Văn A</td>
+                        <td>0909123456</td>
+                        <td>1,500,000</td>
+                        <td>Chờ xử lý</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="alert('Cập nhật đơn DH001')">Cập nhật</button>
+                            <button class="btn btn-danger" onclick="alert('Hủy đơn DH001')">Hủy</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>DH002</td>
+                        <td>Trần Thị B</td>
+                        <td>0988765432</td>
+                        <td>2,000,000</td>
+                        <td>Hoàn thành</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="alert('Cập nhật đơn DH002')">Cập nhật</button>
+                            <button class="btn btn-danger" onclick="alert('Hủy đơn DH002')">Hủy</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../js/scripts.js"></script>
+</body>
+</html>

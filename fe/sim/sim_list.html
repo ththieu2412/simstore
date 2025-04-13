@@ -87,7 +87,7 @@
         }
 
         function fetchMobileNetworkOperators() {
-            fetch("http://localhost:8000/api/simcards/mobile-network-operator/")
+            fetch("http://192.168.1.43:8000/api/simcards/mobile-network-operator/")
                 .then(response => response.json())
                 .then(data => {
                     networkOperators = data; // Store the data for later use
@@ -111,7 +111,7 @@
             let minPrice = document.getElementById("min-price").value;
             let maxPrice = document.getElementById("max-price").value;
 
-            let url = new URL("http://localhost:8000/api/simcards/sims/");
+            let url = new URL("http://192.168.1.43:8000/api/simcards/sims/");
             let params = new URLSearchParams();
 
             if (searchQuery) params.append("phone_number", searchQuery);

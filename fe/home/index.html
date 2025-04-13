@@ -401,7 +401,7 @@
         if (token && employeeId) {
           try {
             const response = await fetch(
-              `http://localhost:8000/api/accounts/employees/${employeeId}/`,
+              `http://192.168.1.43:8000/api/accounts/employees/${employeeId}/`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -416,7 +416,7 @@
             const employee = await response.json();
             const avatarUrl =
               employee.avatar ||
-              "http://localhost:8000/media/image/avatar_default.png";
+              "http://192.168.1.43:8000/media/image/avatar_default.png";
 
             // Hiển thị thông tin người dùng
             authSection.innerHTML = `
@@ -476,7 +476,7 @@
         simError.classList.add("hidden");
         simList.innerHTML = "";
 
-        let url = "http://localhost:8000/api/simcards/sims/?status=2";
+        let url = "http://192.168.1.43:8000/api/simcards/sims/?status=2";
         if (phoneSearch) url += `&phone_number=${phoneSearch}`;
         if (priceFilter) {
           const [min, max] = priceFilter.split("-");
