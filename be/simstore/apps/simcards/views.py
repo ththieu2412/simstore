@@ -50,7 +50,7 @@ class SimViewSet(BaseViewSet):
     def get_serializer_class(self):
         """Sử dụng SimListSerializer cho action 'list'"""
         if self.action == 'list':
-            return SimListSerializer  # Sử dụng SimListSerializer khi gọi GET danh sách
+            return SimListSerializer
         return super().get_serializer_class()
 
     def update(self, request, *args, **kwargs):
@@ -67,37 +67,56 @@ class SimViewSet(BaseViewSet):
         Tự động lọc theo query params (nếu có)
         """
         queryset = super().get_queryset()
-        
-        # Lọc theo status
+
+        queryset = self.filter_by_status(queryset)
+        queryset = self.filter_by_mobile_network_operator(queryset)
+        queryset = self.filter_by_price_range(queryset)
+        queryset = self.filter_by_category(queryset)
+        queryset = self.filter_by_employee(queryset)
+        queryset = self.apply_pagination(queryset)
+
+        return queryset
+
+    def filter_by_status(self, queryset):
+        """Lọc theo status"""
         status = self.request.query_params.get('status')
         if status is not None:
-            queryset = queryset.filter(status=status)
-        
-        # Lọc theo mobile_network_operator
+            return queryset.filter(status=status)
+        return queryset
+
+    def filter_by_mobile_network_operator(self, queryset):
+        """Lọc theo nhà mạng"""
         mobile_network_operator = self.request.query_params.get('mobile_network_operator')
         if mobile_network_operator is not None:
-            queryset = queryset.filter(mobile_network_operator=mobile_network_operator)
-        
-        # Lọc theo khoảng giá
+            return queryset.filter(mobile_network_operator=mobile_network_operator)
+        return queryset
+
+    def filter_by_price_range(self, queryset):
+        """Lọc theo khoảng giá"""
         min_price = self.request.query_params.get('min_price')
         if min_price is not None:
             queryset = queryset.filter(export_price__gte=min_price)
-        
+
         max_price = self.request.query_params.get('max_price')
         if max_price is not None:
             queryset = queryset.filter(export_price__lte=max_price)
 
-        # Lọc theo category_1
+        return queryset
+
+    def filter_by_category(self, queryset):
+        """Lọc theo category_1 và category_2"""
         category_1 = self.request.query_params.get('category_1')
         if category_1 is not None:
             queryset = queryset.filter(category_1=category_1)
 
-        # Lọc theo category_2
         category_2 = self.request.query_params.get('category_2')
         if category_2 is not None:
             queryset = queryset.filter(category_2=category_2)
 
-        # Lọc theo employee (id hoặc name)
+        return queryset
+
+    def filter_by_employee(self, queryset):
+        """Lọc theo employee (id hoặc name)"""
         employee_id = self.request.query_params.get('employee_id')
         if employee_id is not None:
             queryset = queryset.filter(employee__id=employee_id)
@@ -105,5 +124,26 @@ class SimViewSet(BaseViewSet):
         employee_name = self.request.query_params.get('employee_name')
         if employee_name is not None:
             queryset = queryset.filter(employee__full_name__icontains=employee_name)
-        
+
+        return queryset
+
+    def apply_pagination(self, queryset):
+        """Áp dụng skip và limit"""
+        skip = self.request.query_params.get('skip')
+        limit = self.request.query_params.get('limit')
+
+        if skip is not None:
+            try:
+                skip = int(skip)
+                queryset = queryset[skip:]  
+            except ValueError:
+                pass 
+
+        if limit is not None:
+            try:
+                limit = int(limit)
+                queryset = queryset[:limit]  
+            except ValueError:
+                pass  
+
         return queryset
