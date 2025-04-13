@@ -16,6 +16,13 @@ from .models import Account, Employee, Role
 
 from django.conf import settings
 
+from validators import (
+    validate_phone_number,
+    validate_citizen_id,
+    validate_date_of_birth,
+    validate_avatar,
+    validate_password,
+)
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -26,43 +33,23 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def validate_phone_number(self, value):
-        """Kiểm tra số điện thoại hợp lệ (chỉ chứa số và độ dài từ 10-15 ký tự)"""
-        if not re.match(r"^\d{10,15}$", value):
-            raise serializers.ValidationError(
-                "Số điện thoại không hợp lệ (phải từ 10 đến 15 chữ số)."
-            )
-        return value
+        return validate_phone_number(value)
 
     def validate_citizen_id(self, value):
-        """Kiểm tra xem citizen_id có đúng 12 ký tự không"""
-        if len(value) != 12:
-            raise serializers.ValidationError("CCCD bắt buộc 12 ký tự số.")
-        return value
+        return validate_citizen_id(value)
 
     def validate_date_of_birth(self, value):
-        """Kiểm tra ngày sinh hợp lệ (không tương lai, ít nhất 15 tuổi)"""
-        today = timezone.now().date()
-        min_birth_date = today - timedelta(days=15 * 365)  
-
-        if value > today:
-            raise serializers.ValidationError("Ngày sinh không hợp lệ.")
-        if value > min_birth_date:
-            raise serializers.ValidationError("Nhân viên phải lớn hơn 15 tuổi.")
-
-        return value
+        return validate_date_of_birth(value)
 
     def validate_avatar(self, value):
-        """Kiểm tra avatar là ảnh hợp lệ và dưới 5MB"""
-        if value.size > 5 * 1024 * 1024:  # 5MB
-            raise serializers.ValidationError("Kích thước ảnh phải nhỏ hơn 5MB.")
-        return value
-    
+        return validate_avatar(value)
+
     def get_avatar(self, obj):
         """Trả về URL của avatar hoặc ảnh mặc định"""
-        request = self.context.get("request")  # Lấy request từ context
+        request = self.context.get("request")  
         if obj.avatar:
             return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
-        # URL mặc định nếu avatar là null
+        
         default_avatar_url = f"{settings.MEDIA_URL}image/avatar_default.png"
         return request.build_absolute_uri(default_avatar_url) if request else default_avatar_url
 
@@ -75,22 +62,8 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "password", "role", "employee", "employee_name", "is_active"]
         extra_kwargs = {"password": {"write_only": True}}
 
-
     def validate_password(self, value):
-        """Kiểm tra mật khẩu ít nhất 8 ký tự, chứa chữ hoa, thường, số và ký tự đặc biệt"""
-        if len(value) < 8:
-            raise serializers.ValidationError("Mật khẩu phải có ít nhất 8 ký tự.")
-        if not any(char.isdigit() for char in value):
-            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một số.")
-        if not any(char.isupper() for char in value):
-            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một chữ hoa.")
-        if not any(char.islower() for char in value):
-            raise serializers.ValidationError("Mật khẩu phải chứa ít nhất một chữ thường.")
-        if not any(char in "!@#$%^&*()_+-=[]{}|;:'\",.<>?/" for char in value):
-            raise serializers.ValidationError(
-                "Mật khẩu phải chứa ít nhất một ký tự đặc biệt."
-            )
-        return value
+        return validate_password(value)
 
     def create(self, validated_data):
         """Mã hóa mật khẩu trước khi lưu"""
@@ -112,7 +85,7 @@ class RoleSerializer(serializers.ModelSerializer):
 
     def validate_role_name(self, value):
         """Chuẩn hóa role_name về dạng viết thường và kiểm tra trùng"""
-        normalized_name = value.strip().lower()  
+        normalized_name = value.strip().lower()
 
         if Role.objects.filter(role_name__iexact=normalized_name).exists():
             raise serializers.ValidationError("Role name already exists.")

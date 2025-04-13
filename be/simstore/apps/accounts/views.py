@@ -31,34 +31,24 @@ from simstore.permissions import IsAdminPermission
 
 from utils import api_response
 
-class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()
-    serializer_class = EmployeeSerializer
+class BaseViewSet(viewsets.ModelViewSet):
+    """
+    Base ViewSet để custom response format
+    """
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.perform_create(serializer)
             return api_response(status.HTTP_201_CREATED, data=serializer.data)
-        else:
-            return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        
         if serializer.is_valid():
             self.perform_update(serializer)
-            # Nếu employee.status cập nhật thành False, cập nhật status trong Account
-            if "status" in serializer.validated_data and not serializer.validated_data["status"]:
-                try:
-                    account = instance.account 
-                    account.status = False
-                    account.save()
-                except AttributeError:
-                    pass  # Nếu không có tài khoản, bỏ qua lỗi
-
             return api_response(status.HTTP_200_OK, data=serializer.data)
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
@@ -68,57 +58,49 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             self.perform_destroy(instance)
             return api_response(status.HTTP_204_NO_CONTENT)
         except ProtectedError:
-            return api_response(status.HTTP_400_BAD_REQUEST, errors="Không thể xóa nhân viên vì có dữ liệu liên quan.")
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Không thể xóa vì có dữ liệu liên quan.",
+            )
 
-    def perform_create(self, serializer):
-        serializer.save()
 
-    def perform_update(self, serializer):
-        serializer.save()
-    
-    def perform_destroy(self, instance):
-        instance.delete()
+class EmployeeViewSet(BaseViewSet):
+    queryset = Employee.objects.all()
+    serializer_class = EmployeeSerializer
 
-    @action(detail=False, methods=['get'], url_path='no-account')
-    def get_employees_without_account(self, request):
-        employees_without_account = Employee.objects.filter(account__isnull=True)
-        serializer = self.get_serializer(employees_without_account, many=True)
-        return Response(serializer.data)
+    def update(self, request, *args, **kwargs):
+        """
+        Cập nhật thông tin nhân viên.
+        Nếu status của nhân viên bị vô hiệu hóa, cũng vô hiệu hóa tài khoản liên quan.
+        """
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-class RoleViewSet(viewsets.ModelViewSet):
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            self._deactivate_account_if_needed(instance, serializer.validated_data)
+            return api_response(status.HTTP_200_OK, data=serializer.data)
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
+    def _deactivate_account_if_needed(self, employee, validated_data):
+        """
+        Vô hiệu hóa tài khoản nếu status của nhân viên bị vô hiệu hóa.
+        """
+        if "status" in validated_data and not validated_data["status"]:
+            try:
+                account = employee.account
+                account.status = False
+                account.save()
+            except AttributeError:
+                pass  
+
+
+class RoleViewSet(BaseViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
 
-    def create(self, request, *args, **kwargs):
-        """Tạo Role mới"""
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return api_response(status.HTTP_201_CREATED, data=serializer.data)
-        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-
-    def update(self, request, *args, **kwargs):
-        """Cập nhật Role"""
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        if serializer.is_valid():
-            serializer.save()
-            return api_response(status.HTTP_200_OK, data=serializer.data)
-        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-    
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        try:
-            instance.delete()
-            return api_response(status.HTTP_204_NO_CONTENT)
-        except ProtectedError:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="Không thể xóa role vì có dữ liệu liên quan.",
-            )
-
-class AccountViewSet(viewsets.ModelViewSet):
+class AccountViewSet(BaseViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
     # permission_classes = [IsAdminPermission]
@@ -131,56 +113,50 @@ class AccountViewSet(viewsets.ModelViewSet):
             return api_response(status.HTTP_403_FORBIDDEN, errors="Bạn không có quyền truy cập API này!")
         return super().handle_exception(exc)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return api_response(status.HTTP_201_CREATED, data=serializer.data)
-        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        if serializer.is_valid():
-            self.perform_update(serializer)
-            return api_response(status.HTTP_200_OK, data=serializer.data)
-        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return api_response(status.HTTP_204_NO_CONTENT)
-    
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def login(self, request):
-        """API Login - Xác thực bằng JWT"""
+        """
+        API Login - Xác thực bằng JWT
+        """
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            try:
-                account = Account.objects.get(username=username)
-                if not account.is_active:
-                    return api_response(status.HTTP_403_FORBIDDEN, errors="Tài khoản đã bị vô hiệu hóa!")
-                
-                if check_password(password, account.password):  # Kiểm tra mật khẩu
-                    # Tạo JWT Token
-                    refresh = RefreshToken.for_user(account)
-                    data = {
-                        "access_token": str(refresh.access_token),
-                        "refresh_token": str(refresh),
-                        "username": account.username,
-                        "role": account.role.role_name,
-                        "employee_id": account.employee.id
-                    }
-                    return api_response(status.HTTP_200_OK, data=data)
-                return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai mật khẩu!")
-            except Account.DoesNotExist:
-                return api_response(status.HTTP_400_BAD_REQUEST, errors="Tài khoản không tồn tại!")
-            except Exception as e:
-                return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors=f"Lỗi server: {str(e)}")
+            return self._authenticate_user(serializer.validated_data)
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
+    def _authenticate_user(self, validated_data):
+        """
+        Xác thực người dùng và trả về JWT token.
+        """
+        username = validated_data["username"]
+        password = validated_data["password"]
+
+        try:
+            account = Account.objects.get(username=username)
+            if not account.is_active:
+                return api_response(
+                    status.HTTP_403_FORBIDDEN, errors="Tài khoản đã bị vô hiệu hóa!"
+                )
+
+            if check_password(password, account.password):
+                return self._generate_jwt_response(account)
+            return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai mật khẩu!")
+        except Account.DoesNotExist:
+            return api_response(status.HTTP_400_BAD_REQUEST, errors="Tài khoản không tồn tại!")
+
+    def _generate_jwt_response(self, account):
+        """
+        Tạo JWT token cho người dùng.
+        """
+        refresh = RefreshToken.for_user(account)
+        data = {
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+            "username": account.username,
+            "role": account.role.role_name,
+            "employee_id": account.employee.id,
+        }
+        return api_response(status.HTTP_200_OK, data=data)
+
 
 class LogoutView(APIView):
     # permission_classes = [IsAuthenticated]
@@ -200,45 +176,48 @@ User = get_user_model()
 
 class PasswordResetRequestView(APIView):
     def post(self, request, *args, **kwargs):
+        """
+        Gửi email đặt lại mật khẩu.
+        """
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             serializer.send_reset_email(request)
-            return api_response(status.HTTP_200_OK)
+            return api_response(status.HTTP_200_OK, message="Email đặt lại mật khẩu đã được gửi.")
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
 
 class PasswordResetConfirmView(APIView):
     def post(self, request, uidb64, token):
-        try:
-            uid = urlsafe_base64_decode(uidb64).decode()
-            user = get_object_or_404(User, pk=uid)
-        except Exception as e:
+        """
+        Xác nhận đặt lại mật khẩu.
+        """
+        user = self._get_user_from_uid(uidb64)
+        if not user:
             return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                message="Không thể giải mã UID hoặc tìm thấy người dùng.",
-                errors=str(e),
+                status.HTTP_400_BAD_REQUEST, errors="Không thể giải mã UID hoặc tìm thấy người dùng."
             )
 
         if not default_token_generator.check_token(user, token):
             return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                message="Token không hợp lệ hoặc đã hết hạn.",
+                status.HTTP_400_BAD_REQUEST, errors="Token không hợp lệ hoặc đã hết hạn."
             )
 
-        new_password = request.data.get('new_password', None)
+        new_password = request.data.get("new_password")
         if not new_password:
             return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="Mật khẩu mới là bắt buộc.",
+                status.HTTP_400_BAD_REQUEST, errors="Mật khẩu mới là bắt buộc."
             )
-        
+
+        user.set_password(new_password)
+        user.save()
+        return api_response(status.HTTP_200_OK, message="Đặt lại mật khẩu thành công.")
+
+    def _get_user_from_uid(self, uidb64):
+        """
+        Lấy người dùng từ UID được mã hóa.
+        """
         try:
-            user.set_password(new_password)
-            user.save()
-            return api_response(status.HTTP_200_OK, message="Đặt lại mật khẩu thành công.")
-        except Exception as e:
-            return api_response(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                message="Đã xảy ra lỗi khi đặt lại mật khẩu.",
-                errors=str(e),
-            )
+            uid = urlsafe_base64_decode(uidb64).decode()
+            return get_object_or_404(get_user_model(), pk=uid)
+        except Exception:
+            return None
