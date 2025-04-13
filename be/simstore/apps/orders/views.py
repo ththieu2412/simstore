@@ -13,21 +13,30 @@ from .serializers import (
     OrderSerializer,
     PaymentSerializer,
 )
+
 from constants import (
+    # Order statuses
     ORDER_STATUS_CANCELLED,
     ORDER_STATUS_CONFIRMED,
     ORDER_STATUS_COMPLETED,
+
+    # Payment statuses
     PAYMENT_STATUS_UNPAID,
     PAYMENT_STATUS_PAID,
     PAYMENT_METHOD_CHOICES,
-    SIM_STATUS_LISTED,
-    DISCOUNT_STATUS_USED,
+
+    # SIM statuses
     SIM_STATUS_OUT_OF_STOCK,
     SIM_STATUS_LISTED,
     SIM_STATUS_AVAILABLE,
-    EMPLOYEE_STATUS_ACTIVE,
-    EMPLOYEE_STATUS_INACTIVE
+
+    # Discount statuses
+    DISCOUNT_STATUS_USED,
+
+    # Employee statuses
+    EMPLOYEE_STATUS_INACTIVE,
 )
+
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.select_related("customer", "discount", "sim").all()
