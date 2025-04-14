@@ -36,7 +36,7 @@ class SIMSerializer(serializers.ModelSerializer):
 
 
 class ImportReceiptSIMSerializer(serializers.Serializer):
-    sim = SIMSerializer()  # Chứa thông tin SIM
+    sim = SIMSerializer()  
     import_price = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
@@ -53,7 +53,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 
 class ImportReceiptSerializer(serializers.ModelSerializer):
-    sim_list = ImportReceiptSIMSerializer(many=True, write_only=True)  # Danh sách SIM và giá nhập
+    sim_list = serializers.SerializerMethodField()  # Sử dụng SerializerMethodField để tùy chỉnh dữ liệu  
     supplier = SupplierMinimalSerializer()
     employee = EmployeeSerializer()
 
@@ -61,6 +61,13 @@ class ImportReceiptSerializer(serializers.ModelSerializer):
         model = ImportReceipt
         fields = ["id", "created_at", "note", "supplier", "employee", "sim_list"]
         read_only_fields = ["created_at"]
+    
+    def get_sim_list(self, obj):
+        """
+        Lấy danh sách SIM từ ImportReceiptDetail.
+        """
+        details = ImportReceiptDetail.objects.filter(import_receipt=obj)
+        return ImportReceiptDetailSerializer(details, many=True).data
 
     def validate_sim_list(self, sim_list):
         """Kiểm tra danh sách SIM"""
@@ -104,5 +111,23 @@ class ImportReceiptSerializer(serializers.ModelSerializer):
                 sim=sim,
                 import_price=import_price,
             )
+
+class SIMForImportSerializer(serializers.ModelSerializer):
+    mobile_network_operator = serializers.CharField(source="mobile_network_operator.name")
+    category_1 = serializers.CharField(source="category_1.name") 
+    category_2 = serializers.CharField(source="category_2.name")  
+
+    class Meta:
+        model = SIM
+        fields = ["id", "phone_number", "mobile_network_operator", "category_1", "category_2"]
+
+class ImportReceiptDetailSerializer(serializers.ModelSerializer):
+    sim = SIMForImportSerializer()  # Bao gồm thông tin SIM
+
+    class Meta:
+        model = ImportReceiptDetail
+        fields = ["sim", "import_price"]
+
+
 
 
