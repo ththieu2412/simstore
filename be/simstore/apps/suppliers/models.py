@@ -1,13 +1,16 @@
 from django.db import models
 from apps.simcards.models import SIM
 from apps.accounts.models import Employee
-
+from constants import (
+    SUPPLIER_STATUS_ACTIVE,
+    SUPPLIER_STATUS_CHOICES,
+)
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True)
     address = models.TextField()
-    status = models.BooleanField(default=True)  # Nhà cung cấp còn hoạt động
+    status = models.BooleanField(choices=SUPPLIER_STATUS_CHOICES, default=SUPPLIER_STATUS_ACTIVE) 
 
     def __str__(self):
         return self.name
