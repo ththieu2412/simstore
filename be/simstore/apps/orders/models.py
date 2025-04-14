@@ -3,7 +3,7 @@ from apps.locations.models import Ward
 from apps.simcards.models import SIM
 from apps.accounts.models import Employee
 from django.utils.timezone import now
-from simstore.constants import (
+from .constants import (
     ORDER_STATUS_CHOICES,
     DETAIL_UPDATE_STATUS_CHOICES,
     PAYMENT_STATUS_CHOICES,

@@ -1,120 +1,84 @@
 from rest_framework import viewsets, status
-from rest_framework.response import Response
 from .models import Supplier, ImportReceipt
 from .serializers import SupplierSerializer, ImportReceiptSerializer
 from utils import api_response
+
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
 
+    def get_queryset(self):
+        """
+        Lọc danh sách nhà cung cấp theo các thuộc tính.
+        """
+        queryset = super().get_queryset()
+        query_params = self.request.query_params
+
+        filters = {
+            "id": query_params.get("id"),
+            "name__icontains": query_params.get("name"),
+            "phone_number__icontains": query_params.get("phone_number"),
+            "email__icontains": query_params.get("email"),
+            "address__icontains": query_params.get("address"),
+        }
+
+        # Lọc theo trạng thái (status)
+        status = query_params.get("status")
+        if status is not None:
+            filters["status"] = status.lower() in ["true", "1"]
+
+        # Áp dụng bộ lọc
+        return queryset.filter(**{k: v for k, v in filters.items() if v is not None})
+
     def create(self, request, *args, **kwargs):
-        """Tạo mới nhà cung cấp với response format chuẩn"""
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response({
-                "statuscode": status.HTTP_201_CREATED,
-                "data": serializer.data,
-                "status": "success",
-                "errorMessage": None
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            "statuscode": status.HTTP_400_BAD_REQUEST,
-            "data": None,
-            "status": "error",
-            "errorMessage": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        """Tạo mới nhà cung cấp"""
+        return self._handle_request(request, self.perform_create, status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """Cập nhật toàn bộ thông tin nhà cung cấp"""
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        if serializer.is_valid():
-            self.perform_update(serializer)
-            return Response({
-                "statuscode": status.HTTP_200_OK,
-                "data": serializer.data,
-                "status": "success",
-                "errorMessage": None
-            }, status=status.HTTP_200_OK)
-        return Response({
-            "statuscode": status.HTTP_400_BAD_REQUEST,
-            "data": None,
-            "status": "error",
-            "errorMessage": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        """Cập nhật thông tin nhà cung cấp"""
+        return self._handle_request(request, self.perform_update, status.HTTP_200_OK, partial=kwargs.pop("partial", False))
 
     def destroy(self, request, *args, **kwargs):
         """Xóa nhà cung cấp"""
         instance = self.get_object()
         self.perform_destroy(instance)
-        return Response({
-            "statuscode": status.HTTP_200_OK,
-            "data": None,
-            "status": "success",
-            "errorMessage": None
-        }, status=status.HTTP_200_OK)
+        return api_response(status.HTTP_204_NO_CONTENT)
+
+    def _handle_request(self, request, action, success_status, partial=False):
+        """
+        Xử lý các yêu cầu CRUD chung (create, update).
+        """
+        instance = self.get_object() if action == self.perform_update else None
+        serializer = self.get_serializer(instance, data=request.data, partial=partial) if instance else self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            action(serializer)
+            return api_response(success_status, data=serializer.data)
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
 
 class ImportReceiptViewSet(viewsets.ModelViewSet):
     queryset = ImportReceipt.objects.all()
     serializer_class = ImportReceiptSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return api_response(status.HTTP_201_CREATED, data=serializer.data)
-        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+        """Tạo mới phiếu nhập"""
+        return self._handle_request(request, self.perform_create, status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
+        """Cập nhật phiếu nhập"""
+        return self._handle_request(request, self.perform_update, status.HTTP_200_OK, partial=kwargs.pop("partial", False))
 
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        
+    def _handle_request(self, request, action, success_status, partial=False):
+        """
+        Xử lý các yêu cầu CRUD chung (create, update).
+        """
+        instance = self.get_object() if action == self.perform_update else None
+        serializer = self.get_serializer(instance, data=request.data, partial=partial) if instance else self.get_serializer(data=request.data)
+
         if serializer.is_valid():
-            self.perform_update(serializer)
-            return api_response(status.HTTP_200_OK, data=serializer.data)
+            action(serializer)
+            return api_response(success_status, data=serializer.data)
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
-    
-    # def destroy(self, request, pk=None):
-    #     """Xóa Order cùng các dữ liệu liên quan (Payment, Customer, SIM)"""
-    #     import_receipt = get_object_or_404(ImportReceipt, pk=pk)
-
-    #     # Kiểm tra trạng thái SIM
-    #     if import_receipt.sim.status in [0,2]:  
-    #         return format_response(
-    #             status_code=status.HTTP_400_BAD_REQUEST,
-    #             status_text="error",
-    #             error_message="SIM đang được đăng bán hoặc đã bán"
-    #         )
-
-    #     with transaction.atomic():
-    #         try:
-    #             # 2️⃣ Xóa Payment liên quan đến Order
-    #             Payment.objects.filter(order=order).delete()
-
-    #             # 3️⃣ Xóa Customer dựa vào order.customer_id
-    #             Customer.objects.filter(id=order.customer_id).delete()
-
-    #             # 4️⃣ Xóa SIM dựa vào order.sim_id
-    #             SIM.objects.filter(id=order.sim_id).delete()
-
-    #             # 5️⃣ Xóa Order
-    #             order.delete()
-
-    #             return format_response(
-    #                 status_code=status.HTTP_200_OK,
-    #                 status_text="success",
-    #                 data={"message": "Order và các dữ liệu liên quan đã được xóa thành công."}
-    #             )
-
-    #         except Exception as e:
-    #             return format_response(
-    #                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #                 status_text="error",
-    #                 error_message=f"Lỗi trong quá trình xóa dữ liệu: {str(e)}"
-    #             )
 

@@ -14,7 +14,7 @@ from .serializers import (
     PaymentSerializer,
 )
 
-from constants import (
+from .constants import (
     # Order statuses
     ORDER_STATUS_CANCELLED,
     ORDER_STATUS_CONFIRMED,

@@ -16,7 +16,7 @@ from .models import Account, Employee, Role
 
 from django.conf import settings
 
-from validators import (
+from .validators import (
     validate_phone_number,
     validate_citizen_id,
     validate_date_of_birth,
