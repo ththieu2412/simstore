@@ -7,8 +7,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.shortcuts import get_object_or_404
 
 # Thư viện Django REST Framework
-from rest_framework import viewsets, status, generics
-from rest_framework.response import Response
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -100,6 +99,11 @@ class RoleViewSet(BaseViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
 
+import os
+from django.conf import settings
+
+from urllib.parse import urljoin
+
 class AccountViewSet(BaseViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
@@ -145,15 +149,28 @@ class AccountViewSet(BaseViewSet):
 
     def _generate_jwt_response(self, account):
         """
-        Tạo JWT token cho người dùng.
+        Tạo JWT token cho người dùng và trả về link đầy đủ cho ảnh đại diện.
         """
         refresh = RefreshToken.for_user(account)
+        request = self.request  
+
+        default_avatar_path = f"{settings.MEDIA_URL}image/avatar_default.png"
+        default_avatar_url = request.build_absolute_uri(default_avatar_path) if request else default_avatar_path
+
+        # Nếu nhân viên có ảnh đại diện, trả về link đầy đủ
+        avatar_url = (
+            request.build_absolute_uri(account.employee.avatar.url)
+            if account.employee.avatar and request
+            else default_avatar_url
+        )
+
         data = {
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh),
             "username": account.username,
             "role": account.role.role_name,
             "employee_id": account.employee.id,
+            "avatar": avatar_url,  # Trả về link đầy đủ
         }
         return api_response(status.HTTP_200_OK, data=data)
 
