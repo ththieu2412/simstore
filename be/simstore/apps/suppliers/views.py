@@ -1,6 +1,8 @@
-from rest_framework import viewsets, status
-from .models import Supplier, ImportReceipt
-from .serializers import SupplierSerializer, ImportReceiptSerializer
+from django.db import transaction
+from rest_framework import viewsets, status, serializers
+from rest_framework.response import Response
+from .models import Supplier, ImportReceipt, ImportReceiptDetail, SIM
+from .serializers import SupplierSerializer, ImportReceiptCreateSerializer, ImportReceiptRetrieveSerializer
 from utils import api_response
 
 
@@ -59,26 +61,58 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class ImportReceiptViewSet(viewsets.ModelViewSet):
-    queryset = ImportReceipt.objects.all()
-    serializer_class = ImportReceiptSerializer
+    queryset = ImportReceipt.objects.select_related("supplier", "employee").prefetch_related("importreceiptdetail_set")
+
+    def get_serializer_class(self):
+        """Chọn serializer phù hợp dựa trên loại yêu cầu"""
+        if self.action in ["create", "update"]:
+            return ImportReceiptCreateSerializer
+        return ImportReceiptRetrieveSerializer
 
     def create(self, request, *args, **kwargs):
-        """Tạo mới phiếu nhập"""
-        return self._handle_request(request, self.perform_create, status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        """Cập nhật phiếu nhập"""
-        return self._handle_request(request, self.perform_update, status.HTTP_200_OK, partial=kwargs.pop("partial", False))
-
-    def _handle_request(self, request, action, success_status, partial=False):
-        """
-        Xử lý các yêu cầu CRUD chung (create, update).
-        """
-        instance = self.get_object() if action == self.perform_update else None
-        serializer = self.get_serializer(instance, data=request.data, partial=partial) if instance else self.get_serializer(data=request.data)
-
+        """Xử lý yêu cầu tạo mới"""
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            action(serializer)
-            return api_response(success_status, data=serializer.data)
+            validated_data = serializer.validated_data
+
+            with transaction.atomic():
+                supplier = validated_data.get("supplier")
+                employee = validated_data.get("employee")
+
+                if not supplier.status:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"supplier": "Nhà cung cấp đã ngừng hoạt động, không thể tạo phiếu nhập."}
+                    )
+
+                if not employee.status:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"employee": "Nhân viên đã ngừng hoạt động, không thể tạo phiếu nhập."}
+                    )
+
+                sim_data_list = validated_data.pop("sim_list", [])
+                import_receipt = ImportReceipt.objects.create(**validated_data)
+
+                self._create_sim_and_details(import_receipt, sim_data_list)
+
+            # Trả về phản hồi
+            response_serializer = ImportReceiptRetrieveSerializer(import_receipt)
+            return api_response(status.HTTP_201_CREATED, data=response_serializer.data)
+
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
+    def _create_sim_and_details(self, import_receipt, sim_data_list):
+        """Tạo SIM và ghi vào ImportReceiptDetail"""
+        for sim_data in sim_data_list:
+            sim_info = sim_data["sim"]
+            import_price = sim_data["import_price"]
+
+            sim = SIM.objects.create(**sim_info)
+
+            ImportReceiptDetail.objects.create(
+                import_receipt=import_receipt,
+                sim=sim,
+                import_price=import_price,
+            )
 

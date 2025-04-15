@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import Supplier, ImportReceipt, SIM, ImportReceiptDetail, Employee
 import re
 
-
 class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Supplier
@@ -23,9 +22,9 @@ class SupplierSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        """Chỉ chấp nhận email có đuôi @gmail.com hoặc để trống"""
-        if value and not re.match(r"^[\w\.-]+@gmail\.com$", value):
-            raise serializers.ValidationError("Email phải có định dạng xxx@gmail.com.")
+        """Kiểm tra định dạng email hợp lệ"""
+        if value and not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", value):
+            raise serializers.ValidationError("Email phải có định dạng hợp lệ (ví dụ: example@domain.com).")
         return value
 
 
@@ -33,11 +32,6 @@ class SIMSerializer(serializers.ModelSerializer):
     class Meta:
         model = SIM
         fields = ["phone_number", "mobile_network_operator", "category_1", "category_2", "employee", "status"]
-
-
-class ImportReceiptSIMSerializer(serializers.Serializer):
-    sim = SIMSerializer()  
-    import_price = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class SupplierMinimalSerializer(serializers.ModelSerializer):
@@ -52,81 +46,68 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = ["id", "full_name"]
 
 
-class ImportReceiptSerializer(serializers.ModelSerializer):
-    sim_list = serializers.SerializerMethodField()  # Sử dụng SerializerMethodField để tùy chỉnh dữ liệu  
+class SIMCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SIM
+        fields = ["phone_number", "mobile_network_operator", "category_1", "category_2"]
+        extra_kwargs = {
+            "phone_number": {"validators": []},  # Tắt validation mặc định
+        }
+
+    def validate_phone_number(self, value):
+        """Kiểm tra số điện thoại đã tồn tại"""
+        existing_sim = SIM.objects.filter(phone_number=value).first()
+        if existing_sim:
+            raise serializers.ValidationError(f"Số điện thoại '{value}' đã tồn tại trong hệ thống.")
+        return value
+
+
+class SIMRetrieveSerializer(serializers.ModelSerializer):
+    mobile_network_operator = serializers.CharField(source="mobile_network_operator.name")
+    category_1 = serializers.CharField(source="category_1.name")
+    category_2 = serializers.CharField(source="category_2.name")
+
+    class Meta:
+        model = SIM
+        fields = ["phone_number", "mobile_network_operator", "category_1", "category_2"]
+
+
+class ImportReceiptDetailCreateSerializer(serializers.ModelSerializer):
+    sim = SIMCreateSerializer()  
+
+    class Meta:
+        model = ImportReceiptDetail
+        fields = ["sim", "import_price"]
+
+
+class ImportReceiptDetailRetrieveSerializer(serializers.ModelSerializer):
+    sim = SIMRetrieveSerializer()  
+
+    class Meta:
+        model = ImportReceiptDetail
+        fields = ["sim", "import_price"]
+
+
+class ImportReceiptCreateSerializer(serializers.ModelSerializer):
+    sim_list = ImportReceiptDetailCreateSerializer(many=True)  
+
+    class Meta:
+        model = ImportReceipt
+        fields = ["supplier", "employee", "note", "sim_list"]
+
+class ImportReceiptRetrieveSerializer(serializers.ModelSerializer):
+    sim_list = serializers.SerializerMethodField()  
     supplier = SupplierMinimalSerializer()
     employee = EmployeeSerializer()
 
     class Meta:
         model = ImportReceipt
         fields = ["id", "created_at", "note", "supplier", "employee", "sim_list"]
-        read_only_fields = ["created_at"]
-    
+
     def get_sim_list(self, obj):
-        """
-        Lấy danh sách SIM từ ImportReceiptDetail.
-        """
+        """Lấy danh sách SIM từ ImportReceiptDetail"""
         details = ImportReceiptDetail.objects.filter(import_receipt=obj)
-        return ImportReceiptDetailSerializer(details, many=True).data
-
-    def validate_sim_list(self, sim_list):
-        """Kiểm tra danh sách SIM"""
-        self._check_duplicate_phone_numbers(sim_list)
-        self._check_existing_phone_numbers(sim_list)
-        return sim_list
-
-    def _check_duplicate_phone_numbers(self, sim_list):
-        """Kiểm tra trùng lặp số điện thoại trong danh sách gửi lên"""
-        phone_numbers = [sim_data["sim"]["phone_number"] for sim_data in sim_list]
-        if len(phone_numbers) != len(set(phone_numbers)):
-            raise serializers.ValidationError("Danh sách SIM có số điện thoại trùng lặp.")
-
-    def _check_existing_phone_numbers(self, sim_list):
-        """Kiểm tra số điện thoại đã tồn tại trong DB"""
-        phone_numbers = [sim_data["sim"]["phone_number"] for sim_data in sim_list]
-        existing_phones = SIM.objects.filter(phone_number__in=phone_numbers).values_list("phone_number", flat=True)
-        if existing_phones:
-            raise serializers.ValidationError(f"Các số điện thoại sau đã tồn tại: {', '.join(existing_phones)}")
-
-    def create(self, validated_data):
-        """Tạo ImportReceipt, tạo SIM và ghi vào ImportReceiptDetail"""
-        sim_data_list = validated_data.pop("sim_list", [])
-        import_receipt = self._create_import_receipt(validated_data)
-        self._create_sim_and_details(import_receipt, sim_data_list)
-        return import_receipt
-
-    def _create_import_receipt(self, validated_data):
-        """Tạo phiếu nhập"""
-        return ImportReceipt.objects.create(**validated_data)
-
-    def _create_sim_and_details(self, import_receipt, sim_data_list):
-        """Tạo SIM và ghi vào ImportReceiptDetail"""
-        for sim_data in sim_data_list:
-            sim_info = sim_data["sim"]
-            import_price = sim_data["import_price"]
-
-            sim = SIM.objects.create(**sim_info)
-            ImportReceiptDetail.objects.create(
-                import_receipt=import_receipt,
-                sim=sim,
-                import_price=import_price,
-            )
-
-class SIMForImportSerializer(serializers.ModelSerializer):
-    mobile_network_operator = serializers.CharField(source="mobile_network_operator.name")
-    category_1 = serializers.CharField(source="category_1.name") 
-    category_2 = serializers.CharField(source="category_2.name")  
-
-    class Meta:
-        model = SIM
-        fields = ["id", "phone_number", "mobile_network_operator", "category_1", "category_2"]
-
-class ImportReceiptDetailSerializer(serializers.ModelSerializer):
-    sim = SIMForImportSerializer()  # Bao gồm thông tin SIM
-
-    class Meta:
-        model = ImportReceiptDetail
-        fields = ["sim", "import_price"]
+        return ImportReceiptDetailRetrieveSerializer(details, many=True).data
 
 
 
