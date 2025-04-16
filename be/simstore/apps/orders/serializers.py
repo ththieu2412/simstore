@@ -10,6 +10,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
         input_formats=DATE_INPUT_FORMATS,
         format=DATE_OUTPUT_FORMAT,
+        read_only=True,
     )
 
     class Meta:
@@ -23,6 +24,7 @@ class OrderSerializer(serializers.ModelSerializer):
         default=timezone.now,
         format=DATE_OUTPUT_FORMAT,
         input_formats=DATE_INPUT_FORMATS,
+        read_only=True,
     )
     address = serializers.SerializerMethodField()
 
