@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Supplier, ImportReceipt, SIM, ImportReceiptDetail, Employee
 import re
+from core.constants import DATE_OUTPUT_FORMAT
+from datetime import datetime
 
 class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,13 +98,20 @@ class ImportReceiptCreateSerializer(serializers.ModelSerializer):
         fields = ["supplier", "employee", "note", "sim_list"]
 
 class ImportReceiptRetrieveSerializer(serializers.ModelSerializer):
-    sim_list = serializers.SerializerMethodField()  
+    sim_list = serializers.SerializerMethodField()
     supplier = SupplierMinimalSerializer()
     employee = EmployeeSerializer()
+    created_at = serializers.SerializerMethodField()  # Thêm SerializerMethodField
 
     class Meta:
         model = ImportReceipt
         fields = ["id", "created_at", "note", "supplier", "employee", "sim_list"]
+
+    def get_created_at(self, obj):
+        """Format created_at theo định dạng DATE_OUTPUT_FORMAT"""
+        if obj.created_at:
+            return obj.created_at.strftime(DATE_OUTPUT_FORMAT)
+        return None
 
     def get_sim_list(self, obj):
         """Lấy danh sách SIM từ ImportReceiptDetail"""
