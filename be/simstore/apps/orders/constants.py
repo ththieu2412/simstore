@@ -23,9 +23,11 @@ DETAIL_UPDATE_STATUS_CHOICES = [
 # Trạng thái thanh toán
 PAYMENT_STATUS_UNPAID = 0
 PAYMENT_STATUS_PAID = 1
+PAYMENT_STATUS_FAILED = 2
 PAYMENT_STATUS_CHOICES = [
     (PAYMENT_STATUS_UNPAID, "Chưa thanh toán"),
     (PAYMENT_STATUS_PAID, "Đã thanh toán"),
+    (PAYMENT_STATUS_FAILED, "Thanh toán thất bại"),
 ]
 
 # Phương thức thanh toán

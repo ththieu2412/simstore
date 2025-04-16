@@ -221,5 +221,12 @@ EMAIL_HOST_USER = "ththieu2412@gmail.com"  # Thay bằng email thật của bạ
 EMAIL_HOST_PASSWORD = "tdlp yrkw kwax pfjl"  # Mật khẩu ứng dụng (không phải mật khẩu email)
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # Email mặc định gửi đi
 
+# sVNPAY MERCHART
+VNPAY_TMN_CODE = 'R0HSENCZ'
+VNPAY_HASH_SECRET = '6D2CMR9QFPDHNC0F25AKCCZDASKBGQ1P'
+VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  # Sandbox URL
+VNPAY_RETURN_URL = 'http://localhost:8000/api/orders/payment/return/'  # URL nhận kết quả thanh toán
+VNPAY_IPN_URL = 'http://localhost:8000.com/payment/ipn/'  # URL nhận thông báo từ VNPay
+
 
 

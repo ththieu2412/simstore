@@ -1,9 +1,17 @@
+import json
+import urllib.parse
+import hmac
+import hashlib
+from datetime import datetime
+
+from django.conf import settings
 from django.db import transaction
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import HttpResponse
 from django.utils.timezone import now
 
 from rest_framework import status, viewsets
+from rest_framework.response import Response
 
 from utils import api_response
 from .models import Customer, DetailUpdateOrder, Discount, Employee, Order, Payment, SIM
@@ -13,29 +21,22 @@ from .serializers import (
     OrderSerializer,
     PaymentSerializer,
 )
-
 from .constants import (
-    # Order statuses
     ORDER_STATUS_CANCELLED,
     ORDER_STATUS_CONFIRMED,
     ORDER_STATUS_COMPLETED,
-
-    # Payment statuses
     PAYMENT_STATUS_UNPAID,
     PAYMENT_STATUS_PAID,
+    PAYMENT_STATUS_FAILED,
     PAYMENT_METHOD_CHOICES,
-
-    # SIM statuses
     SIM_STATUS_OUT_OF_STOCK,
     SIM_STATUS_LISTED,
     SIM_STATUS_AVAILABLE,
-
-    # Discount statuses
     DISCOUNT_STATUS_USED,
-
-    # Employee statuses
     EMPLOYEE_STATUS_INACTIVE,
 )
+
+from rest_framework.decorators import api_view
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -54,11 +55,14 @@ class OrderViewSet(viewsets.ModelViewSet):
                 sim = self._validate_sim(data.get("sim"))
                 order = self._create_order(data, customer, discount)
                 self._update_sim_and_discount(sim, discount)
-                self._create_payment(order, data.get("payment"))
+                if data.get("payment") == 'cash':
+                    self._create_payment(order, data.get("payment"))
+                
                 return api_response(status.HTTP_201_CREATED, data=OrderSerializer(order).data)
         except ValueError as e:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=str(e))
         except Exception as e:
+            print(f"Error creating order: {str(e)}")
             return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors="Lỗi không xác định")
 
     def list(self, request, *args, **kwargs):
@@ -115,6 +119,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         if customer_serializer.is_valid():
             return customer_serializer.save()
         raise ValueError(self._format_errors(customer_serializer.errors))
+    
+    def _format_errors(self, errors):
+        """
+        Định dạng lỗi từ serializer thành chuỗi dễ đọc.
+        """
+        formatted_errors = []
+        for field, field_errors in errors.items():
+            error_message = f"{field}: {', '.join(field_errors)}"
+            formatted_errors.append(error_message)
+        return " | ".join(formatted_errors)
 
     def _validate_discount(self, discount_code):
         """
@@ -277,7 +291,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status.HTTP_400_BAD_REQUEST,
                 errors="Chỉ có thể xóa đơn hàng ở trạng thái 'Chờ xác nhận'.",
             )
-        order.sim.status = SIM_STATUS_LISTED  # Đánh dấu SIM trở lại trạng thái 'Đang đăng bán'
+        order.sim.status = SIM_STATUS_LISTED 
         order.sim.save()
         self.perform_destroy(order)
         return api_response(status.HTTP_204_NO_CONTENT, data="Đơn hàng đã được xóa thành công.")
@@ -338,6 +352,127 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 serializer.save()
                 return api_response(status.HTTP_200_OK, data=serializer.data)
             return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
+@api_view(['POST'])
+def create_payment(request):
+    order_id = request.data.get('order_id')
+    if not order_id:
+        return api_response(status.HTTP_400_BAD_REQUEST, errors="Thiếu order_id")
+    
+    order = get_object_or_404(Order, id=order_id)
+    sim = order.sim
+
+    amount =  order.total_price * 100  
+
+    order_desc = f"Thanh toán sim {sim.phone_number}"
+    ip_addr = request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+    vnp_params = {
+        'vnp_Version': '2.1.0',
+        'vnp_Command': 'pay',
+        'vnp_TmnCode': settings.VNPAY_TMN_CODE,
+        'vnp_Amount': int(amount),
+        'vnp_CurrCode': 'VND',
+        'vnp_TxnRef': order_id,
+        'vnp_OrderInfo': order_desc,
+        'vnp_OrderType': 'telco',
+        'vnp_Locale': 'vn',
+        'vnp_ReturnUrl': settings.VNPAY_RETURN_URL,
+        'vnp_IpAddr': ip_addr,
+        'vnp_CreateDate': datetime.now().strftime('%Y%m%d%H%M%S'),
+    }
+
+    vnp_params = dict(sorted(vnp_params.items()))
+    query_string = urllib.parse.urlencode(vnp_params)
+    hash_data = query_string.encode('utf-8')
+    vnp_secure_hash = hmac.new(
+        settings.VNPAY_HASH_SECRET.encode('utf-8'),
+        hash_data,
+        hashlib.sha512
+    ).hexdigest()
+
+    vnp_params['vnp_SecureHash'] = vnp_secure_hash
+    vnpay_url = f"{settings.VNPAY_PAYMENT_URL}?{urllib.parse.urlencode(vnp_params)}"
+
+    return api_response(status.HTTP_200_OK, data={"payment_url": vnpay_url})
+
+@api_view(['GET'])
+def payment_return(request):
+    vnp_params = request.GET.dict()
+    secure_hash = vnp_params.get('vnp_SecureHash')
+    vnp_params.pop('vnp_SecureHash', None)
+
+    vnp_params = dict(sorted(vnp_params.items()))
+    query_string = urllib.parse.urlencode(vnp_params, doseq=True)
+    
+    hash_data = query_string.encode('utf-8')
+    calculated_hash = hmac.new(
+        settings.VNPAY_HASH_SECRET.encode('utf-8'),
+        hash_data,
+        hashlib.sha512
+    ).hexdigest()  # Debug calculated hash
+
+    order_id = vnp_params.get('vnp_TxnRef')
+    response_code = vnp_params.get('vnp_ResponseCode')
+
+    if not response_code:
+        return api_response(status.HTTP_400_BAD_REQUEST, errors="Thiếu vnp_ResponseCode")
+
+    if secure_hash == calculated_hash:
+        try:
+            if response_code == '00':
+                order_id = vnp_params.get('vnp_TxnRef')
+                order = Order.objects.get(id=order_id)
+                payment = Payment.objects.create(
+                    order=order, 
+                    payment_method="VNPAY",  
+                    status=PAYMENT_STATUS_PAID,  
+                    # updated_at=timezone.now()  
+                )
+                return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
+            else:
+                return api_response(status.HTTP_400_BAD_REQUEST, errors=f"Thanh toán thất bại: Mã lỗi {response_code}")
+        except Payment.DoesNotExist:
+            return api_response(status.HTTP_404_NOT_FOUND, errors="Đơn hàng không tồn tại")
+    else:
+        return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai chữ ký (Invalid Signature)")
+
+@api_view(['GET'])
+def payment_ipn(request):
+    vnp_params = request.GET.dict()
+    secure_hash = vnp_params.get('vnp_SecureHash')
+    vnp_params.pop('vnp_SecureHash', None)
+
+    vnp_params = dict(sorted(vnp_params.items()))
+    query_string = urllib.parse.urlencode(vnp_params)
+    hash_data = query_string.encode('utf-8')
+    calculated_hash = hmac.new(
+        settings.VNPAY_HASH_SECRET.encode('utf-8'),
+        hash_data,
+        hashlib.sha512
+    ).hexdigest()
+
+    if secure_hash == calculated_hash:
+        order_id = vnp_params.get('vnp_TxnRef')
+        response_code = vnp_params.get('vnp_ResponseCode')
+        try:
+            order = Order.objects.get(id=order_id)
+            if response_code == '00':
+                # Tạo một Payment mới khi thanh toán thành công
+                payment = Payment.objects.create(
+                    order=order,
+                    payment_method="VNPAY",  # Hoặc phương thức thanh toán của bạn
+                    status=PAYMENT_STATUS_PAID,
+                    # updated_at=timezone.now()
+                )
+
+                return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
+            else:
+                return api_response(status.HTTP_400_BAD_REQUEST, errors=f"Thanh toán thất bại: Mã lỗi {response_code}")
+        except Payment.DoesNotExist:
+            return api_response(status.HTTP_404_NOT_FOUND, errors="Đơn hàng không tồn tại")
+    else:
+        return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai chữ ký (Invalid Signature)")
 
 class DiscountViewSet(viewsets.ModelViewSet):
     queryset = Discount.objects.all()
