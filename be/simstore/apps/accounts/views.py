@@ -107,8 +107,32 @@ from urllib.parse import urljoin
 class AccountViewSet(BaseViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
-    # permission_classes = [IsAdminPermission]
-    
+
+    def get_queryset(self):
+        """
+        Lọc danh sách tài khoản theo các tham số từ request.
+        """
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        username = params.get("username")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+
+        email = params.get("email")
+        if email:
+            queryset = queryset.filter(employee__email__icontains=email)
+
+        is_active = params.get("is_active")
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() in ["true", "1"])
+
+        role = params.get("role")
+        if role:
+            queryset = queryset.filter(role__role_name__icontains=role)
+
+        return queryset
+
     def handle_exception(self, exc):
         """
         Xử lý lỗi permission để trả về đúng format yêu cầu
