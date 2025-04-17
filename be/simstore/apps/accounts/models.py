@@ -10,7 +10,7 @@ class Employee(models.Model):
     email = models.EmailField(unique=True)
     address = models.TextField()
     avatar = models.ImageField(upload_to='image/', null=True, blank=True)
-    status = models.BooleanField(default=True)
+    status = models.BooleanField(default=True, blank=True)
 
     def __str__(self):
         return self.full_name
