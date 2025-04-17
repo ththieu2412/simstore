@@ -88,7 +88,13 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
                 if not employee.status:
                     return api_response(
                         status.HTTP_400_BAD_REQUEST,
-                        errors={"employee": "Nhân viên đã ngừng hoạt động, không thể tạo phiếu nhập."}
+                        errors={"employee": "Nhân viên đã nghỉ việc, không thể tạo phiếu nhập."}
+                    )
+                
+                if not employee.account.is_active:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"account": "Tài khoản của nhân viên đã bị vô hiệu hóa, không thể tạo phiếu nhập."}
                     )
 
                 sim_data_list = validated_data.pop("sim_list", [])
