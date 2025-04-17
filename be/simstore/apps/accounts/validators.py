@@ -2,7 +2,7 @@ import re
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
-from constants import *
+from .constants import *
 
 def validate_phone_number(value):
     if not re.match(PHONE_NUMBER_REGEX, value):
