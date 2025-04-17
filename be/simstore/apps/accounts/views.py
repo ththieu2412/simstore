@@ -94,6 +94,31 @@ class EmployeeViewSet(BaseViewSet):
             except AttributeError:
                 pass  
 
+    def get_queryset(self):
+        """
+        Lọc danh sách nhân viên theo các tham số từ request.
+        """
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        full_name = params.get("full_name")
+        if full_name:
+            queryset = queryset.filter(full_name__icontains=full_name)
+
+        email = params.get("email")
+        if email:
+            queryset = queryset.filter(email__icontains=email)
+
+        phone_number = params.get("phone_number")
+        if phone_number:
+            queryset = queryset.filter(phone_number__icontains=phone_number)
+
+        status = params.get("status")
+        if status is not None:
+            queryset = queryset.filter(status=status.lower() in ["true", "1"])
+
+        return queryset
+
 
 class RoleViewSet(BaseViewSet):
     queryset = Role.objects.all()
