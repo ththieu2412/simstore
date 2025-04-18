@@ -8,6 +8,7 @@ from apps.simcards.models import SIM
 from apps.suppliers.models import ImportReceiptDetail
 from datetime import datetime
 
+
 class MonthlyRevenueReportViewSet(ViewSet):
     @action(detail=False, methods=['get'], url_path='revenue')
     def revenue(self, request):
@@ -41,7 +42,7 @@ class MonthlyRevenueReportViewSet(ViewSet):
                 sold_sims = SIM.objects.filter(
                     status=0,
                     updated_at__range=(start, end)
-                ).select_related('importReceiptDetail')
+                ).prefetch_related('importreceiptdetail_set')  # Sử dụng prefetch_related
                 period_label = f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
             else:
                 try:
@@ -61,7 +62,7 @@ class MonthlyRevenueReportViewSet(ViewSet):
                     status=0,
                     updated_at__year=year,
                     updated_at__month=month
-                ).select_related('importReceiptDetail')
+                ).prefetch_related('importreceiptdetail_set')  # Sử dụng prefetch_related
                 period_label = f"{month:02d}-{year}"
 
             if not sold_sims.exists():
@@ -114,17 +115,21 @@ class MonthlyRevenueReportViewSet(ViewSet):
         """Xử lý báo cáo doanh thu chi tiết"""
         report = sold_sims.aggregate(
             total_revenue=Sum('export_price'),
-            total_cost=Sum('importReceiptDetail__import_price'),
+            total_cost=Sum('importreceiptdetail__import_price'),  # Sử dụng prefetch_related
             total_sims_sold=Count('id')
         )
 
-        details = [{
-            'phone_number': sim.phone_number,
-            'import_price': float(sim.importReceiptDetail.import_price),
-            'export_price': float(sim.export_price),
-            'profit': float(sim.export_price - sim.importReceiptDetail.import_price),
-            'sold_date': sim.updated_at.strftime('%d-%m-%Y %H:%M:%S')
-        } for sim in sold_sims]
+        details = []
+        for sim in sold_sims:
+            import_receipt_detail = sim.importreceiptdetail_set.first()  # Lấy ImportReceiptDetail liên quan
+            if import_receipt_detail:
+                details.append({
+                    'phone_number': sim.phone_number,
+                    'import_price': float(import_receipt_detail.import_price),
+                    'export_price': float(sim.export_price),
+                    'profit': float(sim.export_price - import_receipt_detail.import_price),
+                    'sold_date': sim.updated_at.strftime('%d-%m-%Y %H:%M:%S')
+                })
 
         return {
             "period": period_label,

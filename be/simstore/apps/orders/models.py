@@ -9,6 +9,7 @@ from .constants import (
     PAYMENT_STATUS_CHOICES,
     PAYMENT_METHOD_CHOICES,
     DISCOUNT_STATUS_CHOICES,
+    DISCOUNT_STATUS_UNUSED
 )
 
 class Customer(models.Model):
@@ -75,8 +76,6 @@ class Order(models.Model):
         """Ghi đè phương thức save để cập nhật total_price trước khi lưu vào database."""
         self.total_price = self.calculate_total_price()
         super().save(*args, **kwargs)
-
-
 class DetailUpdateOrder(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     updated_at = models.DateTimeField(auto_now_add=True)

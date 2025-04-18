@@ -75,11 +75,17 @@ class SIMRetrieveSerializer(serializers.ModelSerializer):
 
 
 class ImportReceiptDetailCreateSerializer(serializers.ModelSerializer):
-    sim = SIMCreateSerializer()  
+    sim = SIMCreateSerializer()
 
     class Meta:
         model = ImportReceiptDetail
         fields = ["sim", "import_price"]
+
+    def validate_import_price(self, value):
+        """Kiểm tra giá trị import_price không được âm"""
+        if value < 0:
+            raise serializers.ValidationError("Giá nhập không được âm.")
+        return value
 
 
 class ImportReceiptDetailRetrieveSerializer(serializers.ModelSerializer):

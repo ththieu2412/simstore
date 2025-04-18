@@ -226,7 +226,7 @@ VNPAY_TMN_CODE = 'R0HSENCZ'
 VNPAY_HASH_SECRET = '6D2CMR9QFPDHNC0F25AKCCZDASKBGQ1P'
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'  # Sandbox URL
 VNPAY_RETURN_URL = 'http://localhost:8000/api/orders/payment/return/'  # URL nhận kết quả thanh toán
-VNPAY_IPN_URL = 'http://localhost:8000.com/payment/ipn/'  # URL nhận thông báo từ VNPay
+VNPAY_IPN_URL = 'http://localhost:8000/api/orders/payment/ipn/'  # URL nhận thông báo từ VNPay
 
 
 

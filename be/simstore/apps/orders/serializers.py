@@ -27,7 +27,6 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     address = serializers.SerializerMethodField()
-    payment = serializers.SerializerMethodField()  # Thêm trường payment
 
     class Meta:
         model = Order
@@ -38,17 +37,6 @@ class OrderSerializer(serializers.ModelSerializer):
         """Trả về địa chỉ đầy đủ của khách hàng."""
         if obj.ward:
             return f"{obj.detailed_address}, {obj.ward.name}, {obj.ward.district.name}, {obj.ward.district.province.name}"
-        return None
-
-    def get_payment(self, obj):
-        """Trả về thông tin thanh toán liên quan đến đơn hàng."""
-        payment = Payment.objects.filter(order=obj).first()
-        if payment:
-            return {
-                "id": payment.id,
-                "status": payment.status,
-                "payment_method": payment.payment_method,
-            }
         return None
 
     def to_representation(self, instance):

@@ -13,8 +13,9 @@ from django.utils.timezone import now
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
+
 from utils import api_response
-from .models import Customer, DetailUpdateOrder, Discount, Employee, Order, Payment, SIM
+from .models import Customer, DetailUpdateOrder, Discount, Employee, Order, Payment, SIM, Ward
 from .serializers import (
     CustomerSerializer,
     DiscountSerializer,
@@ -38,7 +39,6 @@ from .constants import (
 
 from rest_framework.decorators import api_view
 
-
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.select_related("customer", "discount", "sim").all()
     serializer_class = OrderSerializer
@@ -55,14 +55,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                 sim = self._validate_sim(data.get("sim"))
                 order = self._create_order(data, customer, discount)
                 self._update_sim_and_discount(sim, discount)
-                if data.get("payment") == 'cash':
-                    self._create_payment(order, data.get("payment"))
-                
+                self._create_payment(order, data.get("payment"))
                 return api_response(status.HTTP_201_CREATED, data=OrderSerializer(order).data)
         except ValueError as e:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=str(e))
         except Exception as e:
-            print(f"Error creating order: {str(e)}")
             return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors="Lỗi không xác định")
 
     def list(self, request, *args, **kwargs):
@@ -119,16 +116,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         if customer_serializer.is_valid():
             return customer_serializer.save()
         raise ValueError(self._format_errors(customer_serializer.errors))
-    
-    def _format_errors(self, errors):
-        """
-        Định dạng lỗi từ serializer thành chuỗi dễ đọc.
-        """
-        formatted_errors = []
-        for field, field_errors in errors.items():
-            error_message = f"{field}: {', '.join(field_errors)}"
-            formatted_errors.append(error_message)
-        return " | ".join(formatted_errors)
 
     def _validate_discount(self, discount_code):
         """
@@ -197,104 +184,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         """
         if payment_method not in dict(PAYMENT_METHOD_CHOICES):
             raise ValueError("Phương thức thanh toán không hợp lệ.")
-        Payment.objects.create(order=order, payment_method=payment_method, status=PAYMENT_STATUS_UNPAID)
-
-    def update(self, request, pk=None, *args, **kwargs):
-        """Cập nhật đơn hàng và trả về toàn bộ kết quả đã cập nhật"""
-        order = get_object_or_404(Order, pk=pk)
-        data = request.data.copy()
-
-        if order.status_order in [ORDER_STATUS_CANCELLED, ORDER_STATUS_COMPLETED]:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="Không thể cập nhật đơn hàng đã hủy hoặc đã giao thành công.",
-            )
-
-        with transaction.atomic():
-            try:
-                self._update_order_status(order, data)
-                fields_to_update = ["detailed_address", "ward", "note", "discount", "customer"]
-                for field in fields_to_update:
-                    if field in data:
-                        if field == "customer":
-                            customer_data = data.get("customer")
-                            if customer_data:
-                                customer_serializer = CustomerSerializer(order.customer, data=customer_data, partial=True)
-                                if customer_serializer.is_valid():
-                                    customer_serializer.save()
-                                else:
-                                    raise ValueError(self._format_errors(customer_serializer.errors))
-                        else:
-                            setattr(order, field, data[field])
-
-                if "discount" in data or "sim" in data:
-                    order.total_price = order.calculate_total_price()
-
-                order.save()
-
-                serializer = self.get_serializer(order)
-                return api_response(
-                    status.HTTP_200_OK,
-                    data=serializer.data,
-                )
-
-            except Exception as e:
-                return api_response(
-                    status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    errors=f"Lỗi trong quá trình cập nhật: {str(e)}",
-                )
-
-    def _update_order_status(self, order, data):
-        """
-        Cập nhật trạng thái đơn hàng với các kiểm tra bổ sung.
-        """
-        new_status = data.get("status_order", None)
-        employee_id = data.get("employee_id")
-
-        if not employee_id:
-            raise ValueError("Cần cung cấp employee_id để cập nhật trạng thái.")
-
-        employee = get_object_or_404(Employee, pk=employee_id)
-
-        if employee.status == EMPLOYEE_STATUS_INACTIVE:  
-            raise ValueError("Nhân viên đã nghỉ việc, không thể cập nhật trạng thái đơn hàng.")
-        if not employee.account.is_active:  
-            raise ValueError("Tài khoản của nhân viên đã bị vô hiệu hóa, không thể cập nhật trạng thái đơn hàng.")
-
-        if order.status_order in [ORDER_STATUS_CANCELLED, ORDER_STATUS_COMPLETED]: 
-            raise ValueError("Không thể cập nhật trạng thái đơn hàng đã hủy hoặc đã giao thành công.")
-
-        if new_status is not None and new_status != order.status_order:
-            if new_status == ORDER_STATUS_CANCELLED:
-                order.sim.status = SIM_STATUS_LISTED
-                order.sim.save()
-
-            DetailUpdateOrder.objects.create(
-                order=order,
-                status_updated=new_status,
-                employee=employee,
-                updated_at=now(),
-            )
-
-            if new_status == ORDER_STATUS_COMPLETED:
-                Payment.objects.filter(order=order).update(status=PAYMENT_STATUS_PAID)
-            
-            order.status_order = new_status
-
-    def destroy(self, request, *args, **kwargs):
-        """
-        Xóa đơn hàng nếu trạng thái là 'Chờ xác nhận'.
-        """
-        order = self.get_object()
-        if order.status_order != ORDER_STATUS_CONFIRMED:
-            return api_response(
-                status.HTTP_400_BAD_REQUEST,
-                errors="Chỉ có thể xóa đơn hàng ở trạng thái 'Chờ xác nhận'.",
-            )
-        order.sim.status = SIM_STATUS_LISTED 
-        order.sim.save()
-        self.perform_destroy(order)
-        return api_response(status.HTTP_204_NO_CONTENT, data="Đơn hàng đã được xóa thành công.")
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -410,7 +299,7 @@ def payment_return(request):
         settings.VNPAY_HASH_SECRET.encode('utf-8'),
         hash_data,
         hashlib.sha512
-    ).hexdigest()  # Debug calculated hash
+    ).hexdigest()
 
     order_id = vnp_params.get('vnp_TxnRef')
     response_code = vnp_params.get('vnp_ResponseCode')
@@ -421,18 +310,20 @@ def payment_return(request):
     if secure_hash == calculated_hash:
         try:
             if response_code == '00':
-                order_id = vnp_params.get('vnp_TxnRef')
                 order = Order.objects.get(id=order_id)
-                payment = Payment.objects.create(
+                Payment.objects.create(
                     order=order, 
                     payment_method="VNPAY",  
-                    status=PAYMENT_STATUS_PAID,  
-                    # updated_at=timezone.now()  
+                    status=PAYMENT_STATUS_PAID
                 )
                 return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
             else:
-                return api_response(status.HTTP_400_BAD_REQUEST, errors=f"Thanh toán thất bại: Mã lỗi {response_code}")
-        except Payment.DoesNotExist:
+                # Xử lý lỗi khi thanh toán thất bại
+                return api_response(
+                    status.HTTP_400_BAD_REQUEST,
+                    errors=f"Thanh toán thất bại: Mã lỗi {response_code}"
+                )
+        except Order.DoesNotExist:
             return api_response(status.HTTP_404_NOT_FOUND, errors="Đơn hàng không tồn tại")
     else:
         return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai chữ ký (Invalid Signature)")
