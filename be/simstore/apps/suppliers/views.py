@@ -122,3 +122,22 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
                 import_price=import_price,
             )
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Xóa ImportReceipt nếu không có SIM nào liên quan đã được sử dụng trong Order.
+        """
+        instance = self.get_object()
+
+        related_sims = SIM.objects.filter(importReceiptDetail__import_receipt=instance)
+
+        used_sims = related_sims.filter(order__isnull=False).distinct()
+
+        if used_sims.exists():
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Không thể xóa phiếu nhập vì có SIM đã được sử dụng trong đơn hàng."
+            )
+
+        # Nếu không có SIM nào được sử dụng, cho phép xóa
+        self.perform_destroy(instance)
+        return api_response(status.HTTP_204_NO_CONTENT)
