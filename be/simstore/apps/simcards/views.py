@@ -74,6 +74,7 @@ class SimViewSet(BaseViewSet):
         queryset = self.filter_by_category(queryset)
         queryset = self.filter_by_employee(queryset)
         queryset = self.apply_pagination(queryset)
+        queryset = self.filter_by_phone_number(queryset)
 
         return queryset
 
@@ -127,6 +128,13 @@ class SimViewSet(BaseViewSet):
 
         return queryset
 
+    def filter_by_phone_number(self, queryset):
+        """Lọc theo phone_number"""
+        phone_number = self.request.query_params.get('phone_number')
+        if phone_number is not None:
+            queryset = queryset.filter(phone_number__icontains=phone_number)
+        return queryset
+    
     def apply_pagination(self, queryset):
         """Áp dụng skip và limit"""
         skip = self.request.query_params.get('skip')

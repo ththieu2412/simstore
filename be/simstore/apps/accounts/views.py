@@ -185,13 +185,14 @@ class AccountViewSet(BaseViewSet):
 
         try:
             account = Account.objects.get(username=username)
-            if not account.is_active:
-                return api_response(
-                    status.HTTP_403_FORBIDDEN, errors="Tài khoản đã bị vô hiệu hóa!"
-                )
 
             if check_password(password, account.password):
+                if not account.is_active:
+                    return api_response(
+                        status.HTTP_403_FORBIDDEN, errors="Tài khoản đã bị vô hiệu hóa!"
+                    )
                 return self._generate_jwt_response(account)
+                
             return api_response(status.HTTP_400_BAD_REQUEST, errors="Sai mật khẩu!")
         except Account.DoesNotExist:
             return api_response(status.HTTP_400_BAD_REQUEST, errors="Tài khoản không tồn tại!")

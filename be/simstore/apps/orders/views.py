@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from django.utils.timezone import now
 
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
 
 
@@ -57,6 +57,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                 self._update_sim_and_discount(sim, discount)
                 self._create_payment(order, data.get("payment"))
                 return api_response(status.HTTP_201_CREATED, data=OrderSerializer(order).data)
+        except serializers.ValidationError as e:
+            return api_response(status.HTTP_400_BAD_REQUEST, errors=e.detail)
         except ValueError as e:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=str(e))
         except Exception as e:
@@ -115,7 +117,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         customer_serializer = CustomerSerializer(data=customer_data)
         if customer_serializer.is_valid():
             return customer_serializer.save()
-        raise ValueError(self._format_errors(customer_serializer.errors))
+        raise serializers.ValidationError(customer_serializer.errors)
 
     def _validate_discount(self, discount_code):
         """

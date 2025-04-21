@@ -18,6 +18,13 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = "__all__"
         read_only_fields = ["created_at"]
 
+    def validate_phone_number(self, phone_number):
+        """Kiểm tra tính hợp lệ của số điện thoại."""
+        # Định dạng số điện thoại hợp lệ (ví dụ: 10-11 chữ số, bắt đầu bằng 0)
+        pattern = r"^0\d{9,10}$"
+        if not re.match(pattern, phone_number):
+            raise serializers.ValidationError("Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0 và có 10-11 chữ số.")
+        return phone_number
 
 class OrderSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
