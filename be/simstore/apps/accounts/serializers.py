@@ -130,22 +130,31 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         return value
 
     def send_reset_email(self, request):
-        """Gửi email đặt lại mật khẩu"""
-        email = self.validated_data["email"]
+        email = self.validated_data['email']
         employee = Employee.objects.get(email=email)
         user = Account.objects.get(employee=employee)
 
-        token = default_token_generator.make_token(user)
+        # Tạo token và link đặt lại mật khẩu
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = request.build_absolute_uri(
-            reverse("password-reset-confirm", kwargs={"uidb64": uid, "token": token})
-        )
+        token = default_token_generator.make_token(user)
+        reset_url = f"{request.build_absolute_uri('/api/accounts/password-reset-confirm/')}{uid}/{token}/"
+
+        # Nội dung email
+        subject = "Đặt lại mật khẩu của bạn"
+        message = f"""
+        Xin chào {employee.full_name},
+
+        Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng nhấp vào liên kết bên dưới để đặt lại mật khẩu của bạn:
+
+        {reset_url}
+
+        Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+
+        Trân trọng,
+        Đội ngũ hỗ trợ
+        """
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [email]
 
         # Gửi email
-        send_mail(
-            "Password Reset Request",
-            f"Click the link below to reset your password:\n{reset_url}",
-            "ththieu2412@gmail.com",
-            [email],
-            fail_silently=False,
-        )
+        send_mail(subject, message, from_email, recipient_list)

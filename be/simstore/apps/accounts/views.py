@@ -249,7 +249,7 @@ class PasswordResetRequestView(APIView):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             serializer.send_reset_email(request)
-            return api_response(status.HTTP_200_OK, message="Email đặt lại mật khẩu đã được gửi.")
+            return api_response(status.HTTP_200_OK, data="Email đặt lại mật khẩu đã được gửi.")
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
 
@@ -270,14 +270,24 @@ class PasswordResetConfirmView(APIView):
             )
 
         new_password = request.data.get("new_password")
-        if not new_password:
+        confirm_password = request.data.get("confirm_password")
+
+        # Kiểm tra nếu mật khẩu mới hoặc xác nhận mật khẩu không được cung cấp
+        if not new_password or not confirm_password:
             return api_response(
-                status.HTTP_400_BAD_REQUEST, errors="Mật khẩu mới là bắt buộc."
+                status.HTTP_400_BAD_REQUEST, errors="Mật khẩu mới và xác nhận mật khẩu là bắt buộc."
             )
 
+        # Kiểm tra nếu mật khẩu mới và xác nhận mật khẩu không khớp
+        if new_password != confirm_password:
+            return api_response(
+                status.HTTP_400_BAD_REQUEST, errors="Mật khẩu mới và xác nhận mật khẩu không khớp."
+            )
+
+        # Đặt mật khẩu mới
         user.set_password(new_password)
         user.save()
-        return api_response(status.HTTP_200_OK, message="Đặt lại mật khẩu thành công.")
+        return api_response(status.HTTP_200_OK, data="Đặt lại mật khẩu thành công.")
 
     def _get_user_from_uid(self, uidb64):
         """
