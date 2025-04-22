@@ -1,4 +1,3 @@
-import json
 import urllib.parse
 import hmac
 import hashlib
@@ -62,6 +61,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return api_response(status.HTTP_400_BAD_REQUEST, errors=str(e))
         except Exception as e:
+            print(f"Error: {e}")  # Log the error for debugging
             return api_response(status.HTTP_500_INTERNAL_SERVER_ERROR, errors="Lỗi không xác định")
 
     def list(self, request, *args, **kwargs):
@@ -186,6 +186,44 @@ class OrderViewSet(viewsets.ModelViewSet):
         """
         if payment_method not in dict(PAYMENT_METHOD_CHOICES):
             raise ValueError("Phương thức thanh toán không hợp lệ.")
+
+    def update(self, request, *args, **kwargs):
+        """
+        Cập nhật thông tin đơn hàng.
+        """
+        partial = kwargs.pop("partial", False)  
+        instance = self.get_object()  
+
+        # Kiểm tra trạng thái đơn hàng
+        if instance.status_order == ORDER_STATUS_COMPLETED:
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Không thể cập nhật đơn hàng đã hoàn thành."
+            )
+
+        if instance.status_order == ORDER_STATUS_CANCELLED:
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Không thể cập nhật đơn hàng đã bị hủy."
+            )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            with transaction.atomic():
+                # Lưu thông tin cập nhật
+                updated_order = serializer.save()
+
+                # Nếu trạng thái đơn hàng thay đổi, thêm bản ghi vào DetailUpdateOrder
+                if "status_order" in serializer.validated_data:
+                    DetailUpdateOrder.objects.create(
+                        order=updated_order,
+                        status_updated=serializer.validated_data["status_order"],
+                        employee=request.user.employee  # Giả sử người dùng hiện tại là nhân viên
+                    )
+
+                return api_response(status.HTTP_200_OK, data=serializer.data)
+
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()

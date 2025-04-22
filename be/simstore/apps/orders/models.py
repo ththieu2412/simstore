@@ -67,7 +67,7 @@ class Order(models.Model):
     def calculate_total_price(self):
         """Tính tổng tiền đơn hàng dựa trên giá SIM và giảm giá."""
         total = self.sim.export_price
-        if self.discount and self.discount.status:
+        if self.discount and not self.discount.status:
             discount_amount = total * self.discount.percentage / 100
             total -= discount_amount
         return total

@@ -107,8 +107,6 @@ class DiscountSerializer(serializers.ModelSerializer):
 
     def validate_employee(self, employee):
         """Kiểm tra trạng thái của nhân viên và tài khoản."""
-        if employee.status == 0:  # 0: Đã nghỉ việc
-            raise serializers.ValidationError("Nhân viên đã nghỉ việc, không thể thực hiện thao tác.")
         if not employee.account.is_active:  # Tài khoản bị vô hiệu hóa
             raise serializers.ValidationError("Tài khoản của nhân viên đã bị vô hiệu hóa, không thể thực hiện thao tác.")
         return employee

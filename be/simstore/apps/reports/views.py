@@ -40,7 +40,7 @@ class MonthlyRevenueReportViewSet(ViewSet):
                         "Định dạng ngày không hợp lệ! Sử dụng YYYY-MM-DD"
                     )
                 sold_sims = SIM.objects.filter(
-                    status=0,
+                    order__status_order=3,
                     updated_at__range=(start, end)
                 ).prefetch_related('importreceiptdetail_set')  # Sử dụng prefetch_related
                 period_label = f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
