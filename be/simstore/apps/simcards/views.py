@@ -73,8 +73,8 @@ class SimViewSet(BaseViewSet):
         queryset = self.filter_by_price_range(queryset)
         queryset = self.filter_by_category(queryset)
         queryset = self.filter_by_employee(queryset)
-        queryset = self.apply_pagination(queryset)
         queryset = self.filter_by_phone_number(queryset)
+        queryset = self.apply_pagination(queryset)
 
         return queryset
 
