@@ -19,15 +19,20 @@ from .validators import (
     validate_password,
 )
 
+class AccountNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ["id", "username", "role", "is_active"]
+
 
 class EmployeeSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
-    is_account = serializers.SerializerMethodField()  
+    account = AccountNestedSerializer(read_only=True)  
 
     class Meta:
         model = Employee
         fields = "__all__"
-        read_only_fields = ["id", "is_account"] 
+        read_only_fields = ["id", "is_account"]
 
     def validate_phone_number(self, value):
         return validate_phone_number(value)
@@ -53,7 +58,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def get_is_account(self, obj):
         """Kiểm tra xem nhân viên có tài khoản hay chưa"""
         return Account.objects.filter(employee=obj).exists()
-    
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -136,12 +140,16 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         employee = Employee.objects.get(email=email)
         user = Account.objects.get(employee=employee)
 
-        # Tạo token và link đặt lại mật khẩu
+        
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        reset_url = f"{request.build_absolute_uri('/api/accounts/password-reset-confirm/')}{uid}/{token}/"
 
-        # Nội dung email
+        frontend_url = "http://localhost:3000/auth"  # URL của giao diện FE
+        reset_url = f"{frontend_url}/{uid}/{token}/"
+
+        #URL dành cho API
+        # reset_url = f"{request.build_absolute_uri('/api/accounts/password-reset-confirm/')}{uid}/{token}/"
+
         subject = "Đặt lại mật khẩu của bạn"
         message = f"""
         Xin chào {employee.full_name},
