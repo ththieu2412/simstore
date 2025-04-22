@@ -6,7 +6,9 @@ from rest_framework import status
 from rest_framework.decorators import action
 from apps.simcards.models import SIM
 from apps.suppliers.models import ImportReceiptDetail
+from apps.orders.models import DetailUpdateOrder
 from datetime import datetime
+from apps.orders.constants import ORDER_STATUS_COMPLETED
 
 
 class MonthlyRevenueReportViewSet(ViewSet):
@@ -40,9 +42,9 @@ class MonthlyRevenueReportViewSet(ViewSet):
                         "Định dạng ngày không hợp lệ! Sử dụng YYYY-MM-DD"
                     )
                 sold_sims = SIM.objects.filter(
-                    order__status_order=3,
-                    updated_at__range=(start, end)
-                ).prefetch_related('importreceiptdetail_set')  # Sử dụng prefetch_related
+                    orders__detailupdateorder__status_updated= ORDER_STATUS_COMPLETED,
+                    orders__detailupdateorder__updated_at__range=(start, end)
+                ).prefetch_related('importReceiptDetail').distinct()
                 period_label = f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
             else:
                 try:
@@ -59,10 +61,10 @@ class MonthlyRevenueReportViewSet(ViewSet):
                         "Tháng và năm phải là số nguyên!"
                     )
                 sold_sims = SIM.objects.filter(
-                    status=0,
-                    updated_at__year=year,
-                    updated_at__month=month
-                ).prefetch_related('importreceiptdetail_set')  # Sử dụng prefetch_related
+                    orders__detailupdateorder__status_updated=ORDER_STATUS_COMPLETED,
+                    orders__detailupdateorder__updated_at__year=year,
+                    orders__detailupdateorder__updated_at__month=month
+                ).prefetch_related('importReceiptDetail').distinct()
                 period_label = f"{month:02d}-{year}"
 
             if not sold_sims.exists():
@@ -115,20 +117,28 @@ class MonthlyRevenueReportViewSet(ViewSet):
         """Xử lý báo cáo doanh thu chi tiết"""
         report = sold_sims.aggregate(
             total_revenue=Sum('export_price'),
-            total_cost=Sum('importreceiptdetail__import_price'),  # Sử dụng prefetch_related
+            total_cost=Sum('importReceiptDetail__import_price'), 
             total_sims_sold=Count('id')
         )
 
         details = []
         for sim in sold_sims:
-            import_receipt_detail = sim.importreceiptdetail_set.first()  # Lấy ImportReceiptDetail liên quan
+            print(f"=========================================")  # Debugging line
+            print(f"Processing SIM: {sim.phone_number}")  # Debugging line
+            import_receipt_detail = sim.importReceiptDetail.first() 
+            detail_update_order = DetailUpdateOrder.objects.filter(
+                order__in=sim.orders.all(),
+                status_updated=3
+            ).first()  #
+            print(f"DetailUpdateOrder: {detail_update_order}")  # Debugging line
+            print(f"ImportReceiptDetail: {import_receipt_detail}")  # Debugging line
             if import_receipt_detail:
                 details.append({
                     'phone_number': sim.phone_number,
                     'import_price': float(import_receipt_detail.import_price),
                     'export_price': float(sim.export_price),
                     'profit': float(sim.export_price - import_receipt_detail.import_price),
-                    'sold_date': sim.updated_at.strftime('%d-%m-%Y %H:%M:%S')
+                    'sold_date': detail_update_order.updated_at.strftime('%d-%m-%Y %H:%M:%S') if detail_update_order else None
                 })
 
         return {

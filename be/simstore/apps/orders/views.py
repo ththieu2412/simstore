@@ -187,12 +187,42 @@ class OrderViewSet(viewsets.ModelViewSet):
         if payment_method not in dict(PAYMENT_METHOD_CHOICES):
             raise ValueError("Phương thức thanh toán không hợp lệ.")
 
+        payment = Payment.objects.create(
+            order=order,
+            payment_method=payment_method,
+            status=PAYMENT_STATUS_UNPAID,  
+        )
+
+        if payment_method == "cash":
+            payment.payment_method = "Tiền mặt"
+            payment.save()
+
+        elif payment_method in ["VNPAY"]:
+            payment.payment_method = "VNPAY"
+            self._process_online_payment(order, payment)
+
+        return payment
+
+    def _process_online_payment(self, order, payment):
+        """
+        Xử lý thanh toán trực tuyến.
+        """
+
+        try:
+            print(f"Đang xử lý thanh toán trực tuyến cho đơn hàng {order.id}...")
+            payment.status = PAYMENT_STATUS_PAID
+            payment.save()
+        except Exception as e:
+            payment.status = PAYMENT_STATUS_FAILED
+            payment.save()
+            raise ValueError(f"Lỗi khi xử lý thanh toán trực tuyến: {str(e)}")
+
     def update(self, request, *args, **kwargs):
         """
         Cập nhật thông tin đơn hàng.
         """
-        partial = kwargs.pop("partial", False)  
-        instance = self.get_object()  
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
 
         # Kiểm tra trạng thái đơn hàng
         if instance.status_order == ORDER_STATUS_COMPLETED:
@@ -215,11 +245,44 @@ class OrderViewSet(viewsets.ModelViewSet):
 
                 # Nếu trạng thái đơn hàng thay đổi, thêm bản ghi vào DetailUpdateOrder
                 if "status_order" in serializer.validated_data:
+                    employee_id = request.data.get("employee_id")
+                    if not employee_id:
+                        return api_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            errors="Thiếu thông tin employee_id."
+                        )
+
+                    try:
+                        employee = Employee.objects.get(id=employee_id)
+                    except Employee.DoesNotExist:
+                        return api_response(
+                            status.HTTP_404_NOT_FOUND,
+                            errors="Nhân viên không tồn tại."
+                        )
+
+                    if employee.status == EMPLOYEE_STATUS_INACTIVE:
+                        return api_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            errors="Nhân viên đã nghỉ việc, không thể cập nhật đơn hàng."
+                        )
+
+                    if not employee.account.is_active:
+                        return api_response(
+                            status.HTTP_400_BAD_REQUEST,
+                            errors="Tài khoản của nhân viên đã bị vô hiệu hóa, không thể cập nhật đơn hàng."
+                        )
+
                     DetailUpdateOrder.objects.create(
                         order=updated_order,
                         status_updated=serializer.validated_data["status_order"],
-                        employee=request.user.employee  # Giả sử người dùng hiện tại là nhân viên
+                        employee=employee
                     )
+                    
+                    if serializer.validated_data["status_order"] == ORDER_STATUS_COMPLETED:
+                        payment = Payment.objects.filter(order=updated_order).first()
+                        if payment and payment.status == PAYMENT_STATUS_UNPAID:
+                            payment.status = PAYMENT_STATUS_PAID
+                            payment.save()
 
                 return api_response(status.HTTP_200_OK, data=serializer.data)
 

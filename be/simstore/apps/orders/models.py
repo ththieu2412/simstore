@@ -49,7 +49,7 @@ class Order(models.Model):
     status_order = models.IntegerField(choices=ORDER_STATUS_CHOICES, default=1)
     detailed_address = models.CharField(max_length=255)
 
-    sim = models.ForeignKey(SIM, on_delete=models.CASCADE)
+    sim = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name="orders")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
     discount = models.OneToOneField(Discount, null=True, blank=True, on_delete=models.SET_NULL)
