@@ -22,10 +22,12 @@ from .validators import (
 
 class EmployeeSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
+    is_account = serializers.SerializerMethodField()  
 
     class Meta:
         model = Employee
         fields = "__all__"
+        read_only_fields = ["id", "is_account"] 
 
     def validate_phone_number(self, value):
         return validate_phone_number(value)
@@ -41,12 +43,17 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         """Trả về URL của avatar hoặc ảnh mặc định"""
-        request = self.context.get("request")  
+        request = self.context.get("request")
         if obj.avatar:
             return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
-        
+
         default_avatar_url = f"{settings.MEDIA_URL}image/avatar_default.png"
         return request.build_absolute_uri(default_avatar_url) if request else default_avatar_url
+
+    def get_is_account(self, obj):
+        """Kiểm tra xem nhân viên có tài khoản hay chưa"""
+        return Account.objects.filter(employee=obj).exists()
+    
 
 
 class AccountSerializer(serializers.ModelSerializer):

@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 # Models
 from .models import Employee, Account, Role
@@ -298,3 +299,22 @@ class PasswordResetConfirmView(APIView):
             return get_object_or_404(get_user_model(), pk=uid)
         except Exception:
             return None
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        """
+        Làm mới token bằng refresh_token.
+        """
+        try:
+            response = super().post(request, *args, **kwargs)
+            return api_response(
+                status.HTTP_200_OK,
+                data={
+                    "access_token": response.data["access"]  
+                },
+            )
+        except Exception as e:
+            return api_response(
+                status.HTTP_400_BAD_REQUEST,
+                errors="Token không hợp lệ hoặc đã hết hạn.",
+            )
