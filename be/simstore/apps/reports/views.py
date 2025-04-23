@@ -1,5 +1,5 @@
 from django.utils.timezone import now
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,6 +9,7 @@ from apps.suppliers.models import ImportReceiptDetail
 from apps.orders.models import DetailUpdateOrder
 from datetime import datetime, timedelta
 from apps.orders.constants import ORDER_STATUS_COMPLETED
+from apps.orders.models import Discount 
 
 
 class MonthlyRevenueReportViewSet(ViewSet):
@@ -19,6 +20,77 @@ class MonthlyRevenueReportViewSet(ViewSet):
     @action(detail=False, methods=['get'], url_path='summary')
     def summary(self, request):
         return self._process_report(request, 'summary')
+
+    @action(detail=False, methods=['get'], url_path='sim-statistics')
+    def sim_statistics(self, request):
+        """
+        API thống kê số lượng SIM:
+        - SIM đã bán
+        - SIM đang bán
+        - SIM đang đăng bán
+        """
+        try:
+            # Thống kê số lượng SIM đã bán
+            sold_sims_count = SIM.objects.filter(
+                orders__detailupdateorder__status_updated=ORDER_STATUS_COMPLETED
+            ).distinct().count()
+
+            active_sims_count = SIM.objects.filter(status=1).count()
+
+            pending_sims_count = SIM.objects.filter(status=2).count()
+
+            # total_sims_count = SIM.objects.count()
+
+            data = {
+                "sold_sims_count": sold_sims_count,
+                "active_sims_count": active_sims_count,
+                "pending_sims_count": pending_sims_count
+            }
+            return self._success_response(data)
+
+        except Exception as e:
+            return self._error_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                str(e)
+            )
+
+    @action(detail=False, methods=['get'], url_path='discount-statistics')
+    def discount_statistics(self, request):
+        """
+        API thống kê số lượng mã giảm giá:
+        - Đã sử dụng
+        - Đang được áp dụng
+        - Đã hết hạn
+        """
+        try:
+            used_discount_count = Discount.objects.filter(status=True).count()
+
+            # Thống kê số lượng mã giảm giá đang được áp dụng
+            active_discount_count = Discount.objects.filter(
+                status=False,
+                start_date__lte=now(),
+                end_date__gte=now()
+            ).count()
+
+            # Thống kê số lượng mã giảm giá đã hết hạn
+            expired_discount_count = Discount.objects.filter(
+                status=False,
+                end_date__lt=now()
+            ).count()
+
+            # Trả về kết quả
+            data = {
+                "used_discounts_count": used_discount_count,
+                "active_discounts_count": active_discount_count,
+                "expired_discounts_count": expired_discount_count,
+            }
+            return self._success_response(data)
+
+        except Exception as e:
+            return self._error_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                str(e)
+            )
 
     def _process_report(self, request, action):
         try:

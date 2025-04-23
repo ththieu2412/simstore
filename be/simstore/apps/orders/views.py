@@ -108,20 +108,27 @@ class OrderViewSet(viewsets.ModelViewSet):
         """
         filters = {
             "status_order": self.request.query_params.get("status_order"),
-            "customer__id": self.request.query_params.get("customer"),
+            # "customer__id": self.request.query_params.get("customer"),
             "discount__id": self.request.query_params.get("discount"),
             "ward": self.request.query_params.get("ward"),
             "sim__id": self.request.query_params.get("sim"),
         }
         start_date = self.request.query_params.get("start_date")
         end_date = self.request.query_params.get("end_date")
+        customer_name = self.request.query_params.get("customer")  # Lấy tên khách hàng từ query params
 
+        # Lọc theo các trường cụ thể
         queryset = queryset.filter(**{k: v for k, v in filters.items() if v is not None})
 
+        # Lọc theo ngày
         if start_date:
             queryset = self._filter_by_date(queryset, "created_at__gte", start_date)
         if end_date:
             queryset = self._filter_by_date(queryset, "created_at__lte", end_date)
+
+        # Lọc theo tên khách hàng
+        if customer_name:
+            queryset = queryset.filter(customer__full_name__icontains=customer_name)
 
         return queryset
 
