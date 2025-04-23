@@ -57,3 +57,23 @@ class SimListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SIM
         fields = ['id', 'phone_number', 'status', 'export_price', 'mobile_network_operator']
+
+class SimUpdateSerializer(serializers.ModelSerializer):
+    updated_at = serializers.SerializerMethodField() 
+
+    class Meta:
+        model = SIM
+        fields = '__all__'
+
+    def get_updated_at(self, obj):
+        """Chuyển đổi định dạng ngày tháng"""
+        return obj.updated_at.strftime("%d/%m/%Y %H:%M:%S") if obj.updated_at else None
+
+    def get_employee(self, obj):
+        """Trả về thông tin nhân viên hoặc None nếu không có"""
+        if obj.employee:
+            return {
+                "id": obj.employee.id,
+                "full_name": obj.employee.full_name
+            }
+        return None  # Trả về None nếu không có nhân viên

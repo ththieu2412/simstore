@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import MobileNetworkOperator, Category1, Category2, SIM
-from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimListSerializer, SimSerializer
+from .models import MobileNetworkOperator, Category1, Category2, SIM, Employee
+from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, Category2Serializer, SimListSerializer, SimSerializer, SimUpdateSerializer
 from django.utils.timezone import now
 from rest_framework.decorators import action
 from utils import api_response
@@ -52,15 +52,41 @@ class SimViewSet(BaseViewSet):
         """Sử dụng SimListSerializer cho action 'list'"""
         if self.action == 'list':
             return SimListSerializer
+        elif self.action == 'update' or self.action == 'partial_update':
+            return SimUpdateSerializer
         return super().get_serializer_class()
 
     def update(self, request, *args, **kwargs):
-        """Cập nhật SIM (Chỉ cập nhật khi status khác 0)"""
+        """Cập nhật SIM (Chỉ cập nhật khi status khác 0 và nhân viên có trạng thái True)"""
         instance = self.get_object()
 
+        # Kiểm tra trạng thái SIM
         if instance.status == 0:
             return api_response(status.HTTP_400_BAD_REQUEST, errors="Không thể cập nhật SIM đã hết hàng")
-        
+
+        # Kiểm tra sự tồn tại của employee_id trong request
+        employee_id = request.data.get('employee_id')
+        if not employee_id:
+            return api_response(status.HTTP_400_BAD_REQUEST, errors="Thiếu mã nhân viên cập nhật")
+
+        # Kiểm tra kiểu dữ liệu của employee_id
+        try:
+            employee_id = int(employee_id)
+        except ValueError:
+            return api_response(status.HTTP_400_BAD_REQUEST, errors="employee_id phải là số nguyên")
+
+        # Kiểm tra trạng thái của nhân viên
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            if not employee.status:
+                return api_response(status.HTTP_400_BAD_REQUEST, errors="Nhân viên không hoạt động, không thể cập nhật SIM")
+        except Employee.DoesNotExist:
+            return api_response(status.HTTP_404_NOT_FOUND, errors="Nhân viên không tồn tại")
+
+        # Cập nhật thông tin nhân viên cho SIM
+        instance.employee = employee
+        instance.save()
+
         return super().update(request, *args, **kwargs)
 
     def get_queryset(self):
