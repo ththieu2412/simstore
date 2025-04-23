@@ -69,6 +69,13 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
             return ImportReceiptCreateSerializer
         return ImportReceiptRetrieveSerializer
 
+    def get_queryset(self):
+        """
+        Sắp xếp danh sách phiếu nhập theo thời gian (mới nhất trước).
+        """
+        queryset = super().get_queryset()
+        return queryset.order_by("-created_at")
+    
     def create(self, request, *args, **kwargs):
         """Xử lý yêu cầu tạo mới"""
         serializer = self.get_serializer(data=request.data)

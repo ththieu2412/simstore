@@ -2,7 +2,7 @@
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Func, Value, Q, BooleanField, Case, When
 from django.utils.http import urlsafe_base64_decode
 from django.shortcuts import get_object_or_404
 
@@ -11,6 +11,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -25,6 +26,10 @@ from .serializers import (
     LoginSerializer, 
     PasswordResetRequestSerializer
 )
+import os
+from django.conf import settings
+
+from urllib.parse import urljoin
 
 # Permissions
 from simstore.permissions import IsAdminPermission
@@ -63,6 +68,11 @@ class BaseViewSet(viewsets.ModelViewSet):
                 errors="Không thể xóa vì có dữ liệu liên quan.",
             )
 
+    # def retrieve(self, request, *args, **kwargs):
+    #     instance = self.get_object()
+    #     serializer = self.get_serializer(instance)
+    #     return api_response(status.HTTP_200_OK, data=serializer.data)
+
 
 class EmployeeViewSet(BaseViewSet):
     queryset = Employee.objects.all()
@@ -97,11 +107,12 @@ class EmployeeViewSet(BaseViewSet):
 
     def get_queryset(self):
         """
-        Lọc danh sách nhân viên theo các tham số từ request.
+        Lọc danh sách nhân viên.
         """
         queryset = super().get_queryset()
         params = self.request.query_params
 
+        # Lọc theo các tham số
         full_name = params.get("full_name")
         if full_name:
             queryset = queryset.filter(full_name__icontains=full_name)
@@ -118,17 +129,49 @@ class EmployeeViewSet(BaseViewSet):
         if status is not None:
             queryset = queryset.filter(status=status.lower() in ["true", "1"])
 
+        # Lọc nhân viên đã có tài khoản hay chưa
+        has_account = params.get("has_account")
+        if has_account is not None:
+            has_account = has_account.lower() in ["true", "1"]
+            queryset = queryset.annotate(
+                has_account=Case(
+                    When(account__isnull=False, then=True),
+                    default=False,
+                    output_field=BooleanField(),
+                )
+            ).filter(has_account=has_account)
+
+        # Lọc theo trạng thái tài khoản
+        account_status = params.get("account_status")
+        if account_status is not None:
+            account_status = account_status.lower() in ["true", "1"]
+            queryset = queryset.filter(account__is_active=account_status)
+
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Lấy danh sách nhân viên và sắp xếp trong Python.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        employees = list(queryset)
+        employees.sort(key=lambda emp: (
+            emp.full_name.split()[-1],  # Tên (phần cuối cùng)
+            emp.full_name.split()[1:-1],  # Tên đệm (phần giữa)
+            emp.full_name.split()[0]  # Họ (phần đầu tiên)
+        ))
+        page = self.paginate_queryset(employees)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(employees, many=True)
+        return Response(serializer.data)
 
 
 class RoleViewSet(BaseViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-
-import os
-from django.conf import settings
-
-from urllib.parse import urljoin
 
 class AccountViewSet(BaseViewSet):
     queryset = Account.objects.all()

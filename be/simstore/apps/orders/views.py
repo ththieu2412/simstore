@@ -8,6 +8,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from django.utils.timezone import now
+from django.db.models import Case, When, IntegerField
 
 from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
@@ -41,6 +42,30 @@ from rest_framework.decorators import api_view
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.select_related("customer", "discount", "sim").all()
     serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        """
+        Sắp xếp danh sách đơn hàng theo trạng thái:
+        - Chờ xác nhận
+        - Đang giao
+        - Giao thành công
+        - Đã hủy
+        """
+        queryset = super().get_queryset()
+
+        # Thứ tự sắp xếp tùy chỉnh
+        queryset = queryset.annotate(
+            custom_order=Case(
+                When(status_order=ORDER_STATUS_CONFIRMED, then=0),  
+                When(status_order=ORDER_STATUS_COMPLETED, then=1),  
+                When(status_order=PAYMENT_STATUS_PAID, then=2),     
+                When(status_order=ORDER_STATUS_CANCELLED, then=3), 
+                default=4,  # Mặc định
+                output_field=IntegerField(),
+            )
+        ).order_by("custom_order", "-created_at")  # Sắp xếp theo custom_order và thời gian tạo mới nhất
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         """

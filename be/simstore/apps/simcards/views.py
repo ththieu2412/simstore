@@ -5,6 +5,7 @@ from .serializers import MobileNetworkOperatorSerializer, Category1Serializer, C
 from django.utils.timezone import now
 from rest_framework.decorators import action
 from utils import api_response
+from django.db.models import Case, When, IntegerField
 
 class BaseViewSet(viewsets.ModelViewSet):
     """
@@ -64,10 +65,25 @@ class SimViewSet(BaseViewSet):
 
     def get_queryset(self):
         """
-        Tự động lọc theo query params (nếu có)
+        Sắp xếp danh sách SIM theo trạng thái:
+        - Đang hoạt động (1)
+        - Đang chờ (2)
+        - Hết hàng (0)
         """
         queryset = super().get_queryset()
 
+        # Thứ tự sắp xếp tùy chỉnh
+        queryset = queryset.annotate(
+            custom_order=Case(
+                When(status=1, then=0),  # Đang hoạt động
+                When(status=2, then=1),  # Đang chờ
+                When(status=0, then=2),  # Hết hàng
+                default=3,  # Mặc định
+                output_field=IntegerField(),
+            )
+        ).order_by("custom_order", "-updated_at")  # Sắp xếp theo custom_order và thời gian tạo mới nhất
+
+        # Áp dụng các bộ lọc
         queryset = self.filter_by_status(queryset)
         queryset = self.filter_by_mobile_network_operator(queryset)
         queryset = self.filter_by_price_range(queryset)

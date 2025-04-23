@@ -7,7 +7,7 @@ from rest_framework_simplejwt.views import (
 )
 
 router = DefaultRouter()
-router.register(r'employees', EmployeeViewSet)
+router.register(r'employees', EmployeeViewSet, basename='employee')
 router.register(r'accounts', AccountViewSet)
 router.register(r'roles', RoleViewSet, basename='role')
 
