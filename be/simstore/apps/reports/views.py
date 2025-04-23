@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from apps.simcards.models import SIM
 from apps.suppliers.models import ImportReceiptDetail
 from apps.orders.models import DetailUpdateOrder
-from datetime import datetime
+from datetime import datetime, timedelta
 from apps.orders.constants import ORDER_STATUS_COMPLETED
 
 
@@ -30,7 +30,7 @@ class MonthlyRevenueReportViewSet(ViewSet):
             if start_date and end_date:
                 try:
                     start = datetime.strptime(start_date, '%Y-%m-%d')
-                    end = datetime.strptime(end_date, '%Y-%m-%d')
+                    end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1) - timedelta(seconds=1)
                     if start > end:
                         return self._error_response(
                             status.HTTP_400_BAD_REQUEST,

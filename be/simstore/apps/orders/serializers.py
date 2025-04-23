@@ -55,7 +55,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
         # Loại bỏ các trường không cần thiết
         # data.pop("ward", None)
-        data.pop("detailed_address", None)
+        # data.pop("detailed_address", None)
         return data
 
 
