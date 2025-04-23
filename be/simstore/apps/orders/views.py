@@ -9,9 +9,10 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from django.utils.timezone import now
 from django.db.models import Case, When, IntegerField
-
-from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
+from rest_framework import status, viewsets, serializers
+
+from django.http import HttpResponseRedirect
 
 
 from utils import api_response
@@ -444,12 +445,17 @@ def payment_return(request):
                     payment_method="VNPAY",  
                     status=PAYMENT_STATUS_PAID
                 )
-                return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
+                # return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
+                return HttpResponseRedirect(f"http://localhost:3000/payment-return?order_id={order_id}&status=success")
+            # else:
+            #     # Xử lý lỗi khi thanh toán thất bại
+            #     return api_response(
+            #         status.HTTP_400_BAD_REQUEST,
+            #         errors=f"Thanh toán thất bại: Mã lỗi {response_code}"
+            #     )
             else:
-                # Xử lý lỗi khi thanh toán thất bại
-                return api_response(
-                    status.HTTP_400_BAD_REQUEST,
-                    errors=f"Thanh toán thất bại: Mã lỗi {response_code}"
+                return HttpResponseRedirect(
+                    f"http://localhost:3000/payment-return?order_id={order_id}&status=failed"
                 )
         except Order.DoesNotExist:
             return api_response(status.HTTP_404_NOT_FOUND, errors="Đơn hàng không tồn tại")

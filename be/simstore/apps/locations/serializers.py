@@ -16,13 +16,10 @@ class DistrictSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class WardSerializer(serializers.ModelSerializer):
-    district_name = serializers.CharField(source='district.name', read_only=True)
-    province_name = serializers.CharField(source='district.province.name', read_only=True)
-    district = serializers.PrimaryKeyRelatedField(
-        queryset=District.objects.all(), write_only=True
-    )
+    district_id = serializers.PrimaryKeyRelatedField(source='district', read_only=True)
+    province_id = serializers.PrimaryKeyRelatedField(source='district.province', read_only=True)
 
     class Meta:
         model = Ward
-        fields = ['id', 'name', 'district', 'district_name', 'province_name']
+        fields = ['id', 'name', 'district_id', 'province_id']
 
