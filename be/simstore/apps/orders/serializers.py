@@ -54,7 +54,7 @@ class OrderSerializer(serializers.ModelSerializer):
         data["customer"] = instance.customer.full_name if instance.customer else None
 
         # Loại bỏ các trường không cần thiết
-        data.pop("ward", None)
+        # data.pop("ward", None)
         data.pop("detailed_address", None)
         return data
 
