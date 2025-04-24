@@ -48,7 +48,7 @@ class SIM(models.Model):
     category_1 = models.ForeignKey(Category1, on_delete=models.CASCADE)
     category_2 = models.ForeignKey(Category2, on_delete=models.CASCADE)
     employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
-    export_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    export_price = models.DecimalField(max_digits=15, decimal_places=2, null=True)
     status = models.IntegerField(
         choices=STATUS_CHOICES,
         default=1  

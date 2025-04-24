@@ -190,6 +190,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         """
         Tạo đơn hàng mới.
         """
+        sim = SIM.objects.get(id=data["sim"])
+
+        discount_percentage = discount.percentage if discount else 0
+        discount_amount = (sim.export_price * discount_percentage) / 100
+
+        total_price = round(sim.export_price - discount_amount, 2)
+
         order_data = {
             "detailed_address": data["detailed_address"],
             "sim": data["sim"],
@@ -197,7 +204,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             "ward": data["ward"],
             "discount": discount.id if discount else None,
             "note": data.get("note", ""),
+            "total_price": total_price,
         }
+        
         order_serializer = OrderSerializer(data=order_data)
         if order_serializer.is_valid():
             return order_serializer.save()

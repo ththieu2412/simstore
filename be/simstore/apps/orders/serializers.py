@@ -34,6 +34,8 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     address = serializers.SerializerMethodField()
+    discount_percentage = serializers.SerializerMethodField() 
+    sim_export_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -57,6 +59,18 @@ class OrderSerializer(serializers.ModelSerializer):
         # data.pop("ward", None)
         # data.pop("detailed_address", None)
         return data
+    
+    def get_discount_percentage(self, obj):
+        """Lấy giá trị percentage từ mã giảm giá."""
+        if obj.discount:
+            return obj.discount.percentage
+        return None
+    
+    def get_sim_export_price(self, obj):
+        """Lấy giá bán (export_price) của SIM."""
+        if obj.sim:
+            return obj.sim.export_price  # Trả về giá bán của SIM
+        return None
 
 
 class PaymentSerializer(serializers.ModelSerializer):

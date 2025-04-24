@@ -54,7 +54,7 @@ class Order(models.Model):
     ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
     discount = models.OneToOneField(Discount, null=True, blank=True, on_delete=models.SET_NULL)
     note = models.CharField(max_length=500, null=True, blank=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
