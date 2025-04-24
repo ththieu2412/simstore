@@ -65,7 +65,7 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Chọn serializer phù hợp dựa trên loại yêu cầu"""
-        if self.action in ["create", "update"]:
+        if self.action in ["create", "update", "partial_update"]:
             return ImportReceiptCreateSerializer
         return ImportReceiptRetrieveSerializer
 
@@ -115,6 +115,59 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
 
         return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
 
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Cập nhật thông tin phiếu nhập và danh sách SIM liên quan.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(
+        instance,
+        data=request.data,
+        partial=True,
+        context={"skip_phone_number_validation": True, "is_update": True},
+    )
+
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            print(validated_data)
+            
+    
+            with transaction.atomic():
+                # Cập nhật thông tin phiếu nhập
+                supplier = validated_data.get("supplier", instance.supplier)
+                employee = validated_data.get("employee", instance.employee)
+
+                if not supplier.status:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"supplier": "Nhà cung cấp đã ngừng hoạt động, không thể cập nhật phiếu nhập."}
+                    )
+
+                if not employee.status:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"employee": "Nhân viên đã nghỉ việc, không thể cập nhật phiếu nhập."}
+                    )
+
+                if not employee.account.is_active:
+                    return api_response(
+                        status.HTTP_400_BAD_REQUEST,
+                        errors={"account": "Tài khoản của nhân viên đã bị vô hiệu hóa, không thể cập nhật phiếu nhập."}
+                    )
+
+                sim_data_list = validated_data.pop("sim_list", [])
+                if sim_data_list:
+                    self._update_sim_and_details(instance, sim_data_list)
+
+                # Lưu các thay đổi
+                serializer.save()
+
+            # Trả về phản hồi
+            response_serializer = ImportReceiptRetrieveSerializer(instance)
+            return api_response(status.HTTP_200_OK, data=response_serializer.data)
+
+        return api_response(status.HTTP_400_BAD_REQUEST, errors=serializer.errors)
+
     def _create_sim_and_details(self, import_receipt, sim_data_list):
         """Tạo SIM và ghi vào ImportReceiptDetail"""
         for sim_data in sim_data_list:
@@ -128,6 +181,65 @@ class ImportReceiptViewSet(viewsets.ModelViewSet):
                 sim=sim,
                 import_price=import_price,
             )
+
+    def _update_sim_and_details(self, import_receipt, sim_data_list):
+        """
+        Cập nhật danh sách SIM và chi tiết phiếu nhập.
+        """
+        # Lấy danh sách SIM hiện tại liên quan đến phiếu nhập
+        existing_sim_details = ImportReceiptDetail.objects.filter(import_receipt=import_receipt)
+        existing_sims = {detail.sim.id: detail for detail in existing_sim_details}
+
+        print(sim_data_list)
+        # Duyệt qua danh sách SIM từ request
+        for sim_data in sim_data_list:
+            sim_id = sim_data.get("id")  # Lấy ID của SIM (nếu có)
+            sim_info = sim_data.get("sim", {})
+            import_price = sim_data.get("import_price")
+
+            # Kiểm tra dữ liệu bắt buộc
+            if not sim_info.get("mobile_network_operator_id"):
+                raise serializers.ValidationError(
+                    {"sim": {"mobile_network_operator_id": "Trường này là bắt buộc."}}
+                )
+
+            if sim_id and sim_id in existing_sims:
+                # SIM cũ: Kiểm tra và cập nhật nếu có thay đổi
+                import_receipt_detail = existing_sims[sim_id]
+                sim = import_receipt_detail.sim
+
+                updated = False
+
+                # Kiểm tra và cập nhật giá nhập nếu cần
+                if str(import_receipt_detail.import_price) != str(import_price):
+                    import_receipt_detail.import_price = import_price
+                    updated = True
+
+                # Kiểm tra và cập nhật các trường khác của SIM (ngoại trừ phone_number)
+                for field, value in sim_info.items():
+                    if field != "phone_number" and getattr(sim, field) != value:
+                        setattr(sim, field, value)
+                        updated = True
+
+                # Lưu các thay đổi nếu có
+                if updated:
+                    sim.save()
+                    import_receipt_detail.save()
+            else:
+                # SIM mới: Tạo mới
+                sim = SIM.objects.create(**sim_info)
+                ImportReceiptDetail.objects.create(
+                    import_receipt=import_receipt,
+                    sim=sim,
+                    import_price=import_price,
+                )
+
+        # Xóa các SIM không có trong danh sách mới
+        new_sim_ids = {sim_data.get("id") for sim_data in sim_data_list if sim_data.get("id")}
+        sims_to_delete = [detail for sim_id, detail in existing_sims.items() if sim_id not in new_sim_ids]
+        for detail in sims_to_delete:
+            detail.sim.delete()
+            detail.delete()
 
     def destroy(self, request, *args, **kwargs):
         """

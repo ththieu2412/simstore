@@ -58,12 +58,25 @@ class SIMCreateSerializer(serializers.ModelSerializer):
 
     def validate_phone_number(self, value):
         """Kiểm tra số điện thoại đã tồn tại"""
+        # Bỏ qua validation nếu context yêu cầu
+        if self.context.get("skip_phone_number_validation", False):
+            return value
+
         existing_sim = SIM.objects.filter(phone_number=value).first()
         if existing_sim:
             raise serializers.ValidationError(f"Số điện thoại '{value}' đã tồn tại trong hệ thống.")
         return value
 
-
+class SIMUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SIM
+        fields = ["phone_number", "mobile_network_operator_id", "category_1", "category_2"]
+        extra_kwargs = {
+            "phone_number": {"validators": [], "required": False},
+            "mobile_network_operator_id": {"required": False},
+            "category_1": {"required": False, "allow_null": True},
+            "category_2": {"required": False, "allow_null": True},
+        }
 class SIMRetrieveSerializer(serializers.ModelSerializer):
     mobile_network_operator = serializers.CharField(source="mobile_network_operator.name")
     category_1 = serializers.CharField(source="category_1.name")
@@ -71,7 +84,7 @@ class SIMRetrieveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SIM
-        fields = ["phone_number", "mobile_network_operator", "category_1", "category_2"]
+        fields = ["id", "phone_number", "mobile_network_operator", "category_1", "category_2"]
 
 
 class ImportReceiptDetailCreateSerializer(serializers.ModelSerializer):
@@ -80,6 +93,12 @@ class ImportReceiptDetailCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImportReceiptDetail
         fields = ["sim", "import_price"]
+
+    def get_sim(self, obj):
+        # Use SIMUpdateSerializer for updates, SIMCreateSerializer for creates
+        if self.context.get("is_update", False):
+            return SIMUpdateSerializer(obj.sim, context=self.context).data
+        return SIMCreateSerializer(obj.sim, context=self.context).data
 
     def validate_import_price(self, value):
         """Kiểm tra giá trị import_price không được âm"""

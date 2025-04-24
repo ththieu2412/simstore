@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from apps.orders.constants import ORDER_STATUS_COMPLETED
 from apps.orders.models import Discount 
 
-
 class MonthlyRevenueReportViewSet(ViewSet):
     @action(detail=False, methods=['get'], url_path='revenue')
     def revenue(self, request):
@@ -38,8 +37,6 @@ class MonthlyRevenueReportViewSet(ViewSet):
             active_sims_count = SIM.objects.filter(status=1).count()
 
             pending_sims_count = SIM.objects.filter(status=2).count()
-
-            # total_sims_count = SIM.objects.count()
 
             data = {
                 "sold_sims_count": sold_sims_count,
@@ -114,7 +111,7 @@ class MonthlyRevenueReportViewSet(ViewSet):
                         "Định dạng ngày không hợp lệ! Sử dụng YYYY-MM-DD"
                     )
                 sold_sims = SIM.objects.filter(
-                    orders__detailupdateorder__status_updated= ORDER_STATUS_COMPLETED,
+                    orders__detailupdateorder__status_updated=ORDER_STATUS_COMPLETED,
                     orders__detailupdateorder__updated_at__range=(start, end)
                 ).prefetch_related('importReceiptDetail').distinct()
                 period_label = f"{start.strftime('%d-%m-%Y')} to {end.strftime('%d-%m-%Y')}"
@@ -195,23 +192,30 @@ class MonthlyRevenueReportViewSet(ViewSet):
 
         details = []
         for sim in sold_sims:
-            print(f"=========================================")  # Debugging line
-            print(f"Processing SIM: {sim.phone_number}")  # Debugging line
-            import_receipt_detail = sim.importReceiptDetail.first() 
+            import_receipt_detail = sim.importReceiptDetail.first()
             detail_update_order = DetailUpdateOrder.objects.filter(
                 order__in=sim.orders.all(),
-                status_updated=3
-            ).first()  #
-            print(f"DetailUpdateOrder: {detail_update_order}")  # Debugging line
-            print(f"ImportReceiptDetail: {import_receipt_detail}")  # Debugging line
+                status_updated=ORDER_STATUS_COMPLETED
+            ).first()
+
             if import_receipt_detail:
                 details.append({
                     'phone_number': sim.phone_number,
                     'import_price': float(import_receipt_detail.import_price),
                     'export_price': float(sim.export_price),
                     'profit': float(sim.export_price - import_receipt_detail.import_price),
-                    'sold_date': detail_update_order.updated_at.strftime('%d-%m-%Y %H:%M:%S') if detail_update_order else None
+                    'sold_date': detail_update_order.updated_at if detail_update_order else None
                 })
+
+        # Sắp xếp danh sách `details` theo `sold_date` tăng dần
+        details = sorted(details, key=lambda x: x['sold_date'] or datetime.min)
+
+        # Format sold_date as string after sorting
+        for detail in details:
+            if detail['sold_date']:
+                detail['sold_date'] = detail['sold_date'].strftime('%d-%m-%Y %H:%M:%S')
+            else:
+                detail['sold_date'] = None
 
         return {
             "period": period_label,
@@ -236,4 +240,3 @@ class MonthlyRevenueReportViewSet(ViewSet):
             "total_sims_sold": report["total_sims_sold"] or 0,
             "sold_sim_codes": list(sold_sims.values_list('id', flat=True))
         }
-
