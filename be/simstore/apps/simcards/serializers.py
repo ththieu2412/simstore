@@ -26,7 +26,8 @@ class SimSerializer(serializers.ModelSerializer):
     mobile_network_operator = MobileNetworkOperatorMinimalSerializer()  
     category_1 = Category1Serializer()  
     category_2 = Category2Serializer()  
-    employee = serializers.SerializerMethodField()  
+    employee = serializers.SerializerMethodField()
+    import_price = serializers.SerializerMethodField()  
 
     class Meta:
         model = SIM
@@ -50,6 +51,13 @@ class SimSerializer(serializers.ModelSerializer):
         if SIM.objects.filter(phone_number=value).exists():
             raise serializers.ValidationError("SIM với số điện thoại này đã tồn tại.")
         return value
+    
+    def get_import_price(self, obj):
+        """Lấy giá trị import_price từ ImportReceiptDetail"""
+        import_receipt_detail = obj.importReceiptDetail.first()  # Lấy bản ghi đầu tiên liên quan
+        if import_receipt_detail:
+            return import_receipt_detail.import_price
+        return None
 
 class SimListSerializer(serializers.ModelSerializer):
     mobile_network_operator = MobileNetworkOperatorMinimalSerializer()  
@@ -57,6 +65,7 @@ class SimListSerializer(serializers.ModelSerializer):
     class Meta:
         model = SIM
         fields = ['id', 'phone_number', 'status', 'export_price', 'mobile_network_operator']
+    
 
 class SimUpdateSerializer(serializers.ModelSerializer):
     updated_at = serializers.SerializerMethodField() 
@@ -77,3 +86,4 @@ class SimUpdateSerializer(serializers.ModelSerializer):
                 "full_name": obj.employee.full_name
             }
         return None  # Trả về None nếu không có nhân viên
+    

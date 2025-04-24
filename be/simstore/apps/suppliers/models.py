@@ -32,7 +32,7 @@ class ImportReceipt(models.Model):
 class ImportReceiptDetail(models.Model):
     import_receipt = models.ForeignKey(ImportReceipt, on_delete=models.CASCADE)
     sim = models.ForeignKey(SIM, on_delete=models.CASCADE, related_name='importReceiptDetail')
-    import_price = models.DecimalField(max_digits=10, decimal_places=2)
+    import_price = models.DecimalField(max_digits=15, decimal_places=2)
 
     def __str__(self):
         return f"Receipt {self.import_receipt.id} - SIM {self.sim.id}"
