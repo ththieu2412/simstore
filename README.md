@@ -32,7 +32,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 ## 🛠️ **Công Nghệ Sử Dụng**
 
 - **Backend**: Django (Python)
-- **Frontend**: ReactJS (Optional for frontend)
 - **Cơ Sở Dữ Liệu**: MySQL
 - **Xử lý API**: Django Rest Framework
 - **Bảo mật**: JWT Authentication, HTTPS
@@ -48,14 +47,15 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 ### Cài Đặt Dự Án
 1. **Clone dự án**:
    ```bash
-   git clone https://github.com/yourusername/ecommerce-website.git
-   cd ecommerce-website
+   git clone https://github.com/ththieu2412/simstore.git
+   cd be
+   cd simstore
 
 2. **Cài đặt các thư viện yêu cầu: Cài đặt các gói Python bằng pip:**
    ```bash
    pip install -r requirements.txt
 
-3. **Cài đặt PostgreSQL:**
+3. **Cài đặt MySQL:**
   - Đảm bảo đã cài đặt MySQL và tạo một cơ sở dữ liệu cho dự án.
   - Cấu hình thông tin kết nối trong file settings.py.
 
@@ -85,9 +85,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 
 ### 2. **Phát triển API với Django Rest Framework**
 - Xây dựng các API cho các chức năng như quản lý đơn hàng, thanh toán.
-
-### 3. Tạo giao diện người dùng
-- Sử dụng ReactJS để xây dựng giao diện web.
 
 ### 4. Kiểm thử và triển khai
 - Viết các bài kiểm thử cho các chức năng của hệ thống.
