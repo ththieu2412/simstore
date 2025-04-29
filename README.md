@@ -32,7 +32,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 ## 🛠️ **Công Nghệ Sử Dụng**
 
 - **Backend**: Django (Python)
-- **Frontend**: ReactJS (Optional for frontend)
 - **Cơ Sở Dữ Liệu**: MySQL
 - **Xử lý API**: Django Rest Framework
 - **Bảo mật**: JWT Authentication, HTTPS
@@ -55,12 +54,14 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
    ```bash
    pip install -r requirements.txt
 
-3. **Cài đặt PostgreSQL:**
+3. **Cài đặt MySQL:**
   - Đảm bảo đã cài đặt MySQL và tạo một cơ sở dữ liệu cho dự án.
   - Cấu hình thông tin kết nối trong file settings.py.
 
 4. **Chạy migrations: Sau khi cài đặt, chạy migrations để tạo các bảng trong cơ sở dữ liệu:**
    ```bash
+   cd be
+   cd simstore
    python manage.py migrate
 
 5. **Chạy server: Để chạy server development:**
@@ -85,9 +86,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 
 ### 2. **Phát triển API với Django Rest Framework**
 - Xây dựng các API cho các chức năng như quản lý đơn hàng, thanh toán.
-
-### 3. Tạo giao diện người dùng
-- Sử dụng ReactJS để xây dựng giao diện web.
 
 ### 4. Kiểm thử và triển khai
 - Viết các bài kiểm thử cho các chức năng của hệ thống.
