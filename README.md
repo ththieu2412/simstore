@@ -47,8 +47,9 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 ### Cài Đặt Dự Án
 1. **Clone dự án**:
    ```bash
-   git clone https://github.com/yourusername/ecommerce-website.git
-   cd ecommerce-website
+   git clone https://github.com/ththieu2412/simstore.git
+   cd be
+   cd simstore
 
 2. **Cài đặt các thư viện yêu cầu: Cài đặt các gói Python bằng pip:**
    ```bash
@@ -60,8 +61,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 
 4. **Chạy migrations: Sau khi cài đặt, chạy migrations để tạo các bảng trong cơ sở dữ liệu:**
    ```bash
-   cd be
-   cd simstore
    python manage.py migrate
 
 5. **Chạy server: Để chạy server development:**
