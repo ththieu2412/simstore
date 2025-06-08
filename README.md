@@ -71,7 +71,6 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 
 ## 🔑 Tính Năng
 - Quản lý sản phẩm: Admin có thể thêm, sửa, xóa sản phẩm từ hệ thống.
-- Giỏ hàng: Người dùng có thể thêm sản phẩm vào giỏ hàng và tiến hành thanh toán.
 - Đặt hàng và thanh toán: Người dùng có thể thực hiện các đơn hàng, và hệ thống sẽ xử lý thanh toán thông qua API payment.
 - Quản lý đơn hàng: Nhân viên có thể xem và quản lý tất cả đơn hàng.
 - Thông báo và Email: Hệ thống gửi thông báo và email khi đơn hàng được xử lý.
