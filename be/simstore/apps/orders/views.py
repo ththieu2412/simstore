@@ -320,6 +320,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                         employee=employee
                     )
                     
+                    if serializer.validated_data["status_order"] == ORDER_STATUS_CANCELLED:
+                        # Nếu đơn hàng bị hủy, cập nhật trạng thái SIM về đang đăng bán
+                        sim = updated_order.sim
+                        if sim.status != SIM_STATUS_LISTED:
+                            sim.status = SIM_STATUS_LISTED
+                            sim.save()
+
                     if serializer.validated_data["status_order"] == ORDER_STATUS_COMPLETED:
                         payment = Payment.objects.filter(order=updated_order).first()
                         if payment and payment.status == PAYMENT_STATUS_UNPAID:
