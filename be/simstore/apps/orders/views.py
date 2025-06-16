@@ -35,6 +35,7 @@ from .constants import (
     SIM_STATUS_LISTED,
     SIM_STATUS_AVAILABLE,
     DISCOUNT_STATUS_USED,
+    DISCOUNT_STATUS_UNUSED,
     EMPLOYEE_STATUS_INACTIVE,
 )
 
@@ -46,26 +47,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Sắp xếp danh sách đơn hàng theo trạng thái:
-        - Chờ xác nhận
-        - Đang giao
-        - Giao thành công
-        - Đã hủy
+        Sắp xếp danh sách đơn hàng theo id từ lớn đến bé
         """
-        queryset = super().get_queryset()
-
-        # Thứ tự sắp xếp tùy chỉnh
-        queryset = queryset.annotate(
-            custom_order=Case(
-                When(status_order=ORDER_STATUS_CONFIRMED, then=0),  
-                When(status_order=ORDER_STATUS_COMPLETED, then=1),  
-                When(status_order=PAYMENT_STATUS_PAID, then=2),     
-                When(status_order=ORDER_STATUS_CANCELLED, then=3), 
-                default=4,  # Mặc định
-                output_field=IntegerField(),
-            )
-        ).order_by("custom_order", "-created_at")  # Sắp xếp theo custom_order và thời gian tạo mới nhất
-
+        queryset = super().get_queryset().order_by('-id')
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -327,6 +311,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                             sim.status = SIM_STATUS_LISTED
                             sim.save()
 
+                    discount = getattr(instance, 'discount', None)
+                    if discount:
+                        discount.status = DISCOUNT_STATUS_UNUSED
+                        discount.save()
+
                     if serializer.validated_data["status_order"] == ORDER_STATUS_COMPLETED:
                         payment = Payment.objects.filter(order=updated_order).first()
                         if payment and payment.status == PAYMENT_STATUS_UNPAID:
@@ -454,6 +443,7 @@ def payment_return(request):
     ).hexdigest()
 
     order_id = vnp_params.get('vnp_TxnRef')
+    print(f"=======Order ID: {order_id}")
     response_code = vnp_params.get('vnp_ResponseCode')
 
     if not response_code:
@@ -462,14 +452,16 @@ def payment_return(request):
     if secure_hash == calculated_hash:
         try:
             if response_code == '00':
+                print(f"=======Thanh toán thành công===========: {order_id}")
                 order = Order.objects.get(id=order_id)
+                print(f"=======Order: {order}")
                 Payment.objects.create(
                     order=order, 
                     payment_method="VNPAY",  
                     status=PAYMENT_STATUS_PAID
                 )
                 # return api_response(status.HTTP_200_OK, data={"message": "Thanh toán thành công", "order_id": order_id})
-                return HttpResponseRedirect(f"http://localhost:3000/payment-return?order_id={order_id}&status=success")
+                return HttpResponseRedirect(f"http://10.251.9.168:3000/payment-return?order_id={order_id}&status=success")
             # else:
             #     # Xử lý lỗi khi thanh toán thất bại
             #     return api_response(
@@ -478,7 +470,7 @@ def payment_return(request):
             #     )
             else:
                 return HttpResponseRedirect(
-                    f"http://localhost:3000/payment-return?order_id={order_id}&status=failed"
+                    f"http://10.251.9.168:3000/payment-return?order_id={order_id}&status=failed"
                 )
         except Order.DoesNotExist:
             return api_response(status.HTTP_404_NOT_FOUND, errors="Đơn hàng không tồn tại")

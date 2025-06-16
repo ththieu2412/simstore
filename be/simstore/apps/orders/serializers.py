@@ -33,6 +33,7 @@ class OrderSerializer(serializers.ModelSerializer):
         input_formats=DATE_INPUT_FORMATS,
         read_only=True,
     )
+    
     address = serializers.SerializerMethodField()
     discount_percentage = serializers.SerializerMethodField() 
     sim_export_price = serializers.SerializerMethodField()
