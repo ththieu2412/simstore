@@ -1,7 +1,6 @@
-# 🛒 **Xây Dựng Website Thương Mại Điện Tử**
+# 🛒 **Xây Dựng Website Kinh Doanh Sim Điện Thoại**
 
-Dự án **Xây dựng website thương mại điện tử** được phát triển với mục tiêu tạo ra một nền tảng mua bán trực tuyến, cho phép người dùng có thể duyệt, đặt hàng và thanh toán trực tuyến một cách dễ dàng. Dự án bao gồm các chức năng chính như quản lý khách hàng, đơn hàng, thanh toán và quản lý sản phẩm.
-
+Dự án **SimStore** là một nền tảng thương mại điện tử đơn giản, hỗ trợ người dùng duyệt, đặt mua sim điện thoại và thanh toán trực tuyến (hoặc tiền mặt). Hệ thống cũng hỗ trợ quản trị viên trong việc quản lý sản phẩm, đơn hàng và báo cáo doanh thu.
 ---
 
 ## 📑 Mục Lục
@@ -18,14 +17,17 @@ Dự án **Xây dựng website thương mại điện tử** được phát tri�
 
 ## 🚀 **Giới Thiệu**
 
-Dự án này là một hệ thống thương mại điện tử cho phép người dùng thực hiện các hành động sau:
-- Đăng ký và đăng nhập tài khoản người dùng
-- Duyệt các sản phẩm và thêm vào giỏ hàng
-- Quản lý đơn hàng
-- Hỗ trợ thanh toán và giao hàng
-- Quản lý thông tin khách hàng, đơn hàng và sản phẩm từ phía admin
+SimStore là một website bán sim điện thoại, cung cấp các chức năng chính:
 
-Mục tiêu của dự án là xây dựng một website đơn giản nhưng đầy đủ các tính năng cơ bản của một website thương mại điện tử, đồng thời tối ưu hóa trải nghiệm người dùng và quản lý hệ thống dễ dàng cho admin.
+- Xem danh sách sim đang bán theo danh mục
+
+- Đặt hàng và thanh toán (tiền mặt hoặc online)
+
+- Quản lý đơn hàng, nhân viên
+
+- Thống kê doanh thu, tình trạng đơn hàng
+
+Mục tiêu là tạo ra một hệ thống trực quan, dễ sử dụng cho cả người dùng và quản trị viên.
 
 ---
 
@@ -34,14 +36,14 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 - **Backend**: Django (Python)
 - **Cơ Sở Dữ Liệu**: MySQL
 - **Xử lý API**: Django Rest Framework
-- **Bảo mật**: JWT Authentication, HTTPS
+- **Bảo mật**: JWT Authentication,CSRF,CORS
 
 ---
 
 ## 📝 **Cài Đặt**
 
 ### Yêu Cầu Hệ Thống
-- Python 3.x
+- Python 3.8
 - MySQL
 
 ### Cài Đặt Dự Án
@@ -70,10 +72,12 @@ Mục tiêu của dự án là xây dựng một website đơn giản nhưng đ�
 --- 
 
 ## 🔑 Tính Năng
-- Quản lý sản phẩm: Admin có thể thêm, sửa, xóa sản phẩm từ hệ thống.
+
+- Quản lý Sim: Thêm, sửa, xóa, tìm kiếm sim
 - Đặt hàng và thanh toán: Người dùng có thể thực hiện các đơn hàng, và hệ thống sẽ xử lý thanh toán thông qua API payment.
 - Quản lý đơn hàng: Nhân viên có thể xem và quản lý tất cả đơn hàng.
-- Thông báo và Email: Hệ thống gửi thông báo và email khi đơn hàng được xử lý.
+- Xác thực JWT: Đăng nhập/đăng ký, phân quyền.
+- Thống kê báo cáo: Doanh thu, đơn hàng theo trạng thái, thời gian.
 
 ---
 
